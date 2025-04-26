@@ -15,7 +15,7 @@ A simple expense tracker application with Python Flask backend and React.js fron
 
 1. Navigate to the backend directory:
    ```
-   cd expense-tracker/backend
+   cd backend
    ```
 
 2. Create a virtual environment:
@@ -49,7 +49,7 @@ The backend will be available at http://localhost:5000
 
 1. Navigate to the frontend directory:
    ```
-   cd expense-tracker/frontend
+   cd frontend
    ```
 
 2. Install dependencies:
