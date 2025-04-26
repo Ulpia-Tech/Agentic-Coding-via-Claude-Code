@@ -1,9 +1,11 @@
 ./
+├── .claude/
+│   └── settings.json
 ├── README.md
 ├── backend/
 │   ├── app.py
 │   └── requirements.txt
-├── expense-tracker.txt
+├── directory-listing.txt
 └── frontend/
     ├── package.json
     ├── public/
