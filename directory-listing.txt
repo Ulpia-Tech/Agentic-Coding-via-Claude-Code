@@ -1,0 +1,18 @@
+./
+├── README.md
+├── backend/
+│   ├── app.py
+│   └── requirements.txt
+├── expense-tracker.txt
+└── frontend/
+    ├── package.json
+    ├── public/
+    │   └── index.html
+    └── src/
+        ├── App.css
+        ├── App.js
+        ├── components/
+        │   ├── ExpenseForm.js
+        │   ├── ExpenseList.js
+        │   └── ExpenseSummary.js
+        └── index.js
