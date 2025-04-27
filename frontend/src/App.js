@@ -9,6 +9,10 @@ import './App.css';
 
 const API_URL = 'http://localhost:5000';
 
+// Configure axios defaults
+axios.defaults.headers.common['Content-Type'] = 'application/json';
+axios.defaults.headers.common['Accept'] = 'application/json';
+
 function App() {
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -23,7 +27,13 @@ function App() {
   const fetchExpenses = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get(`${API_URL}/expenses`);
+      const response = await axios.get(`${API_URL}/expenses`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        withCredentials: false
+      });
       setExpenses(response.data);
       setError(null);
     } catch (err) {
@@ -36,7 +46,13 @@ function App() {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get(`${API_URL}/categories`);
+      const response = await axios.get(`${API_URL}/categories`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        withCredentials: false
+      });
       setCategories(response.data);
     } catch (err) {
       console.error('Failed to fetch categories:', err);
@@ -45,7 +61,13 @@ function App() {
 
   const addExpense = async (expense) => {
     try {
-      await axios.post(`${API_URL}/expenses`, expense);
+      await axios.post(`${API_URL}/expenses`, expense, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        withCredentials: false
+      });
       fetchExpenses();
       fetchCategories();
     } catch (err) {
@@ -56,7 +78,13 @@ function App() {
 
   const deleteExpense = async (id) => {
     try {
-      await axios.delete(`${API_URL}/expenses/${id}`);
+      await axios.delete(`${API_URL}/expenses/${id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        withCredentials: false
+      });
       fetchExpenses();
       fetchCategories();
     } catch (err) {
