@@ -5,7 +5,27 @@ import os
 import datetime
 
 app = Flask(__name__)
-CORS(app)
+# Configure CORS to explicitly allow requests from the React frontend
+CORS(app, resources={r"/*": {
+    "origins": "http://localhost:3000",
+    "allow_headers": ["Content-Type", "Authorization"],
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+}}, supports_credentials=True)
+
+# Add CORS headers to all responses
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    return response
+
+# Handle preflight OPTIONS requests
+@app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+@app.route('/<path:path>', methods=['OPTIONS'])
+def options_handler(path):
+    return jsonify({'status': 'ok'})
 
 # Create database if it doesn't exist
 def init_db():
