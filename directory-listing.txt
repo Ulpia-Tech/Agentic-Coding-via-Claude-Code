@@ -1,12 +1,18 @@
 ./
 ├── .claude/
+│   ├── commands/
+│   │   └── fix-issue.md
 │   └── settings.json
 ├── README.md
 ├── backend/
+│   ├── .gitignore
 │   ├── app.py
+│   ├── expenses.db
 │   └── requirements.txt
 ├── directory-listing.txt
 └── frontend/
+    ├── .gitignore
+    ├── package-lock.json
     ├── package.json
     ├── public/
     │   └── index.html
