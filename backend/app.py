@@ -1,31 +1,11 @@
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import sqlite3
 import os
 import datetime
 
 app = Flask(__name__)
-
-# CORS handling with raw headers to ensure they are correctly set
-@app.after_request
-def add_cors_headers(response):
-    # Allow requests from any origin
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    # Allow specific methods
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-    # Allow specific headers
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-    # Allow credentials
-    response.headers['Access-Control-Allow-Credentials'] = 'true'
-    # Set max age to 1 day
-    response.headers['Access-Control-Max-Age'] = '86400'
-    return response
-
-# Handle OPTIONS requests explicitly
-@app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
-@app.route('/<path:path>', methods=['OPTIONS'])
-def options_handler(path):
-    response = make_response()
-    return response
+CORS(app)
 
 # Create database if it doesn't exist
 def init_db():
