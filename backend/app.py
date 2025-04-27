@@ -5,21 +5,11 @@ import os
 import datetime
 
 app = Flask(__name__)
-# Configure CORS to explicitly allow requests from the React frontend
-CORS(app, resources={r"/*": {
-    "origins": "http://localhost:3000",
-    "allow_headers": ["Content-Type", "Authorization"],
-    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-}}, supports_credentials=True)
 
-# Add CORS headers to all responses
-@app.after_request
-def add_cors_headers(response):
-    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-    response.headers['Access-Control-Allow-Credentials'] = 'true'
-    return response
+# Enable CORS for all routes and all origins
+CORS(app, resources={r"/*": {"origins": "*"}}, 
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept"])
 
 # Handle preflight OPTIONS requests
 @app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
@@ -54,7 +44,8 @@ def get_expenses():
     cursor.execute('SELECT * FROM expenses ORDER BY date DESC')
     expenses = [dict(row) for row in cursor.fetchall()]
     conn.close()
-    return jsonify(expenses)
+    response = jsonify(expenses)
+    return response
 
 @app.route('/expenses', methods=['POST'])
 def add_expense():
@@ -78,7 +69,8 @@ def add_expense():
     conn.close()
     
     expense_data['id'] = new_id
-    return jsonify(expense_data), 201
+    response = jsonify(expense_data)
+    return response, 201
 
 @app.route('/expenses/<int:expense_id>', methods=['DELETE'])
 def delete_expense(expense_id):
@@ -87,7 +79,8 @@ def delete_expense(expense_id):
     cursor.execute('DELETE FROM expenses WHERE id = ?', (expense_id,))
     conn.commit()
     conn.close()
-    return jsonify({'message': 'Expense deleted'}), 200
+    response = jsonify({'message': 'Expense deleted'})
+    return response, 200
 
 @app.route('/categories', methods=['GET'])
 def get_categories():
@@ -96,7 +89,8 @@ def get_categories():
     cursor.execute('SELECT DISTINCT category FROM expenses')
     categories = [row[0] for row in cursor.fetchall()]
     conn.close()
-    return jsonify(categories)
+    response = jsonify(categories)
+    return response
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5001, debug=True)

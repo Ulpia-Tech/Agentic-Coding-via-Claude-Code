@@ -7,7 +7,10 @@ import ExpenseList from './components/ExpenseList';
 import ExpenseSummary from './components/ExpenseSummary';
 import './App.css';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:5001';
+
+// Configure axios defaults
+axios.defaults.headers.post['Content-Type'] = 'application/json';
 
 function App() {
   const [expenses, setExpenses] = useState([]);
@@ -23,9 +26,7 @@ function App() {
   const fetchExpenses = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get(`${API_URL}/expenses`, {
-        withCredentials: true
-      });
+      const response = await axios.get(`${API_URL}/expenses`);
       setExpenses(response.data);
       setError(null);
     } catch (err) {
@@ -38,9 +39,7 @@ function App() {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get(`${API_URL}/categories`, {
-        withCredentials: true
-      });
+      const response = await axios.get(`${API_URL}/categories`);
       setCategories(response.data);
     } catch (err) {
       console.error('Failed to fetch categories:', err);
@@ -49,9 +48,7 @@ function App() {
 
   const addExpense = async (expense) => {
     try {
-      await axios.post(`${API_URL}/expenses`, expense, {
-        withCredentials: true
-      });
+      await axios.post(`${API_URL}/expenses`, expense);
       fetchExpenses();
       fetchCategories();
     } catch (err) {
@@ -62,9 +59,7 @@ function App() {
 
   const deleteExpense = async (id) => {
     try {
-      await axios.delete(`${API_URL}/expenses/${id}`, {
-        withCredentials: true
-      });
+      await axios.delete(`${API_URL}/expenses/${id}`);
       fetchExpenses();
       fetchCategories();
     } catch (err) {
