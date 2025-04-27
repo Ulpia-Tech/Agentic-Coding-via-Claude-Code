@@ -21,7 +21,7 @@ function App() {
   const fetchExpenses = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('/expenses');
+      const response = await axios.get('/api/expenses');
       setExpenses(response.data);
       setError(null);
     } catch (err) {
@@ -34,7 +34,7 @@ function App() {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('/categories');
+      const response = await axios.get('/api/categories');
       setCategories(response.data);
     } catch (err) {
       console.error('Failed to fetch categories:', err);
@@ -43,7 +43,7 @@ function App() {
 
   const addExpense = async (expense) => {
     try {
-      await axios.post('/expenses', expense);
+      await axios.post('/api/expenses', expense);
       fetchExpenses();
       fetchCategories();
     } catch (err) {
@@ -54,7 +54,7 @@ function App() {
 
   const deleteExpense = async (id) => {
     try {
-      await axios.delete(`/expenses/${id}`);
+      await axios.delete(`/api/expenses/${id}`);
       fetchExpenses();
       fetchCategories();
     } catch (err) {
