@@ -5,7 +5,7 @@ import os
 import datetime
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
 # Create database if it doesn't exist
 def init_db():
