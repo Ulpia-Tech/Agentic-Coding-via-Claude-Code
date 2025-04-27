@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Backend (Flask)
 - Setup: `cd backend && source venv/bin/activate && pip install -r requirements.txt`
 - Run: `cd backend && python app.py` (serves on http://localhost:5001)
+- Test: `cd backend && python -m unittest discover -s tests` (write unit tests for all endpoints)
 
 ### Frontend (React)
 - Setup: `cd frontend && npm install`
@@ -21,6 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Use Flask RESTful patterns for API endpoints
 - Pin dependency versions in requirements.txt
 - Error handling should include appropriate HTTP status codes
+- Write unit tests for all endpoint functions using unittest
 
 ### Frontend
 - Use functional components with React hooks

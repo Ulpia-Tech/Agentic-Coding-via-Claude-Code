@@ -1,8 +1,10 @@
 ./
 ├── .claude/
 │   ├── commands/
+│   │   ├── directory-listing.md
 │   │   └── fix-issue.md
 │   └── settings.json
+├── CLAUDE.md
 ├── README.md
 ├── backend/
 │   ├── .gitignore
@@ -24,3 +26,4 @@
         │   ├── ExpenseList.js
         │   └── ExpenseSummary.js
         └── index.js
+
