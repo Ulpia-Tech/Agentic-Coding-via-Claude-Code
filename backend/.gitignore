@@ -33,3 +33,5 @@ instance/
 # OS specific
 .DS_Store
 .env
+
+uploads/

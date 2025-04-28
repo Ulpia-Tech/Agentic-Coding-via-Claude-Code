@@ -22,7 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Use Flask RESTful patterns for API endpoints
 - Pin dependency versions in requirements.txt
 - Error handling should include appropriate HTTP status codes
-- Write unit tests for all endpoint functions using unittest
+- ALWAYS add unit tests
 
 ### Frontend
 - Use functional components with React hooks

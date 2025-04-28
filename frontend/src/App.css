@@ -10,3 +10,25 @@
   transform: translateY(-3px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
+
+.receipt-preview {
+  cursor: pointer;
+  transition: transform 0.2s;
+  max-width: 100%;
+  max-height: 200px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+}
+
+.receipt-preview:hover {
+  transform: scale(1.05);
+}
+
+.receipt-thumbnail {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.receipt-thumbnail:hover {
+  transform: scale(1.1);
+}
