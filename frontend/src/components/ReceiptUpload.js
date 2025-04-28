@@ -1,23 +1,46 @@
 import React, { useState } from 'react';
-import { Form, Button, Card, Alert } from 'react-bootstrap';
+import { Form, Button, Card, Alert, Spinner } from 'react-bootstrap';
+import PropTypes from 'prop-types';
 import axios from 'axios';
+import API_CONFIG from '../config';
 
-const API_URL = 'http://localhost:5001';
-
-function ReceiptUpload({ onUploadSuccess, expenses }) {
+function ReceiptUpload({ onUploadSuccess, expenses, isExpensesLoading }) {
   const [file, setFile] = useState(null);
   const [description, setDescription] = useState('');
   const [expenseId, setExpenseId] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
+
+  const validateFile = (file) => {
+    const errors = {};
+    
+    if (!file) {
+      errors.file = 'Please select a receipt image';
+      return errors;
+    }
+    
+    if (!file.type.includes('image/png')) {
+      errors.file = 'Only PNG images are allowed';
+    }
+    
+    if (file.size > 10 * 1024 * 1024) { // 10MB
+      errors.file = 'File size must be less than 10MB';
+    }
+    
+    return errors;
+  };
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     
     if (selectedFile) {
-      if (!selectedFile.type.includes('image/png')) {
-        setError('Only PNG images are allowed');
+      const errors = validateFile(selectedFile);
+      
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        setError(errors.file);
         setFile(null);
         setPreview(null);
         return;
@@ -25,6 +48,7 @@ function ReceiptUpload({ onUploadSuccess, expenses }) {
       
       setFile(selectedFile);
       setError(null);
+      setValidationErrors({});
       
       // Create a preview
       const reader = new FileReader();
@@ -38,8 +62,11 @@ function ReceiptUpload({ onUploadSuccess, expenses }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!file) {
-      setError('Please select a receipt image');
+    // Validate form
+    const fileErrors = validateFile(file);
+    if (Object.keys(fileErrors).length > 0) {
+      setValidationErrors(fileErrors);
+      setError(fileErrors.file);
       return;
     }
     
@@ -54,7 +81,7 @@ function ReceiptUpload({ onUploadSuccess, expenses }) {
         formData.append('expense_id', expenseId);
       }
       
-      await axios.post(`${API_URL}/receipts`, formData, {
+      await axios.post(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.RECEIPTS}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -72,7 +99,7 @@ function ReceiptUpload({ onUploadSuccess, expenses }) {
       }
     } catch (err) {
       console.error('Error uploading receipt:', err);
-      setError('Failed to upload receipt. Please try again.');
+      setError(`Upload failed: ${err.response?.data?.error || err.message}`);
     } finally {
       setIsUploading(false);
     }
@@ -92,7 +119,16 @@ function ReceiptUpload({ onUploadSuccess, expenses }) {
               accept=".png" 
               onChange={handleFileChange}
               disabled={isUploading}
+              isInvalid={validationErrors.file}
             />
+            <Form.Text className="text-muted">
+              Maximum file size: 10MB
+            </Form.Text>
+            {validationErrors.file && (
+              <Form.Control.Feedback type="invalid">
+                {validationErrors.file}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
           
           {preview && (
@@ -102,6 +138,7 @@ function ReceiptUpload({ onUploadSuccess, expenses }) {
                 src={preview} 
                 alt="Receipt preview"
                 className="receipt-preview"
+                style={{ maxWidth: '100%', maxHeight: '300px' }}
               />
             </div>
           )}
@@ -119,18 +156,25 @@ function ReceiptUpload({ onUploadSuccess, expenses }) {
           
           <Form.Group className="mb-3">
             <Form.Label>Link to Expense (Optional)</Form.Label>
-            <Form.Select
-              value={expenseId}
-              onChange={(e) => setExpenseId(e.target.value)}
-              disabled={isUploading}
-            >
-              <option value="">-- No linked expense --</option>
-              {expenses && expenses.map(expense => (
-                <option key={expense.id} value={expense.id}>
-                  {expense.category} - ${expense.amount} - {expense.description}
-                </option>
-              ))}
-            </Form.Select>
+            {isExpensesLoading ? (
+              <div className="text-center py-2">
+                <Spinner animation="border" size="sm" />
+                <span className="ms-2">Loading expenses...</span>
+              </div>
+            ) : (
+              <Form.Select
+                value={expenseId}
+                onChange={(e) => setExpenseId(e.target.value)}
+                disabled={isUploading || isExpensesLoading}
+              >
+                <option value="">-- No linked expense --</option>
+                {expenses && expenses.map(expense => (
+                  <option key={expense.id} value={expense.id}>
+                    {expense.category} - ${expense.amount} - {expense.description}
+                  </option>
+                ))}
+              </Form.Select>
+            )}
             <Form.Text className="text-muted">
               Optionally link this receipt to an existing expense
             </Form.Text>
@@ -141,12 +185,33 @@ function ReceiptUpload({ onUploadSuccess, expenses }) {
             type="submit" 
             disabled={isUploading || !file}
           >
-            {isUploading ? 'Uploading...' : 'Upload Receipt'}
+            {isUploading ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Uploading...
+              </>
+            ) : 'Upload Receipt'}
           </Button>
         </Form>
       </Card.Body>
     </Card>
   );
 }
+
+ReceiptUpload.propTypes = {
+  onUploadSuccess: PropTypes.func.isRequired,
+  expenses: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    amount: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+    category: PropTypes.string.isRequired,
+    description: PropTypes.string
+  })),
+  isExpensesLoading: PropTypes.bool
+};
+
+ReceiptUpload.defaultProps = {
+  expenses: [],
+  isExpensesLoading: false
+};
 
 export default ReceiptUpload;
