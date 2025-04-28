@@ -24,6 +24,9 @@
         ├── components/
         │   ├── ExpenseForm.js
         │   ├── ExpenseList.js
-        │   └── ExpenseSummary.js
+        │   ├── ExpenseSummary.js
+        │   ├── ReceiptList.js
+        │   ├── ReceiptUpload.js
+        │   └── ReceiptsPage.js
         └── index.js
 
