@@ -3,6 +3,8 @@
 │   ├── commands/
 │   │   ├── directory-listing.md
 │   │   └── fix-issue.md
+│   ├── reviews/
+│   │   └── receipts-review.md
 │   └── settings.json
 ├── CLAUDE.md
 ├── README.md
@@ -10,7 +12,11 @@
 │   ├── .gitignore
 │   ├── app.py
 │   ├── expenses.db
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── tests/
+│       ├── __init__.py
+│       ├── test_app.py
+│       └── test_receipts.py
 ├── directory-listing.txt
 └── frontend/
     ├── .gitignore
@@ -28,5 +34,6 @@
         │   ├── ReceiptList.js
         │   ├── ReceiptUpload.js
         │   └── ReceiptsPage.js
+        ├── config.js
         └── index.js
 
