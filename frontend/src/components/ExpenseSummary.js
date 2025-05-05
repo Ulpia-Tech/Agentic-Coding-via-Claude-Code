@@ -56,7 +56,7 @@ const ExpenseSummary = ({ expenses }) => {
   return (
     <Card className="mb-4">
       <Card.Header as="h5">Expense Summary</Card.Header>
-      <Card.Body>
+      <Card.Body className="summary-card-body">
         <Row>
           <Col md={4}>
             <div className="text-center mb-4">
