@@ -5,7 +5,10 @@
 │   │   └── fix-issue.md
 │   ├── reviews/
 │   │   └── receipts-review.md
-│   └── settings.json
+│   ├── settings.json
+│   └── settings.local.json
+├── .gitignore
+├── .mcp.json
 ├── CLAUDE.md
 ├── README.md
 ├── backend/
@@ -28,12 +31,21 @@
         ├── App.css
         ├── App.js
         ├── components/
+        │   ├── DashboardPage.js
         │   ├── ExpenseForm.js
         │   ├── ExpenseList.js
         │   ├── ExpenseSummary.js
         │   ├── ReceiptList.js
         │   ├── ReceiptUpload.js
-        │   └── ReceiptsPage.js
+        │   ├── ReceiptsPage.js
+        │   ├── ThemeToggle.js
+        │   └── dashboard/
+        │       ├── ExpenseComparison.js
+        │       ├── ExpenseTrends.js
+        │       ├── ExpensesByCategory.js
+        │       └── ExpensesByMonth.js
         ├── config.js
+        ├── contexts/
+        │   └── ThemeContext.js
         └── index.js
 
