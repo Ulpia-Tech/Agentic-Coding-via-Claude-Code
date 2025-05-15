@@ -5,7 +5,8 @@
 │   │   └── fix-issue.md
 │   ├── reviews/
 │   │   └── receipts-review.md
-│   └── settings.json
+│   ├── settings.json
+│   └── settings.local.json
 ├── CLAUDE.md
 ├── README.md
 ├── backend/
@@ -16,7 +17,8 @@
 │   └── tests/
 │       ├── __init__.py
 │       ├── test_app.py
-│       └── test_receipts.py
+│       ├── test_receipts.py
+│       └── test_subscriptions.py
 ├── directory-listing.txt
 └── frontend/
     ├── .gitignore
@@ -28,12 +30,19 @@
         ├── App.css
         ├── App.js
         ├── components/
+        │   ├── DashboardPage.js
         │   ├── ExpenseForm.js
         │   ├── ExpenseList.js
         │   ├── ExpenseSummary.js
         │   ├── ReceiptList.js
         │   ├── ReceiptUpload.js
-        │   └── ReceiptsPage.js
+        │   ├── ReceiptsPage.js
+        │   ├── SubscriptionForm.js
+        │   ├── SubscriptionList.js
+        │   ├── SubscriptionSummary.js
+        │   ├── SubscriptionsPage.js
+        │   └── ThemeToggle.js
         ├── config.js
+        ├── contexts/
+        │   └── ThemeContext.js
         └── index.js
-
