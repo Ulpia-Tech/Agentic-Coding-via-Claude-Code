@@ -98,6 +98,17 @@ def init_db():
             renewal_date TEXT NOT NULL
         )
         ''')
+        cursor.execute('''
+        CREATE TABLE budgets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            category TEXT NOT NULL,
+            amount REAL NOT NULL,
+            period TEXT NOT NULL,
+            start_date TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        ''')
     else:
         # Check if receipts table exists and create it if it doesn't
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='receipts'")
@@ -126,6 +137,21 @@ def init_db():
                 billing_cycle TEXT NOT NULL,
                 start_date TEXT NOT NULL,
                 renewal_date TEXT NOT NULL
+            )
+            ''')
+            
+        # Check if budgets table exists and create it if it doesn't
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='budgets'")
+        if not cursor.fetchone():
+            cursor.execute('''
+            CREATE TABLE budgets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                category TEXT NOT NULL,
+                amount REAL NOT NULL,
+                period TEXT NOT NULL,
+                start_date TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
             )
             ''')
     
@@ -599,6 +625,425 @@ def calculate_monthly_expense():
         return jsonify({'monthly_expense': monthly_expense})
     except Exception as e:
         return jsonify({'error': 'Failed to calculate monthly expense', 'details': str(e)}), 500
+
+# Budget endpoints
+@app.route('/budgets', methods=['GET'])
+def get_budgets():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Apply category filter if provided
+        category = request.args.get('category')
+        period = request.args.get('period')
+        
+        query = 'SELECT * FROM budgets'
+        params = []
+        
+        if category or period:
+            query += ' WHERE'
+            
+            if category:
+                query += ' category = ?'
+                params.append(category)
+                
+            if period:
+                if category:
+                    query += ' AND'
+                query += ' period = ?'
+                params.append(period)
+        
+        query += ' ORDER BY category, start_date DESC'
+        
+        cursor.execute(query, params)
+        budgets = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        
+        return jsonify(budgets)
+    except Exception as e:
+        return jsonify({'error': 'Failed to get budgets', 'details': str(e)}), 500
+
+@app.route('/budgets', methods=['POST'])
+def add_budget():
+    try:
+        budget_data = request.json
+        
+        if not budget_data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        required_fields = ['category', 'amount', 'period', 'start_date']
+        if not all(k in budget_data for k in required_fields):
+            return jsonify({
+                'error': 'Missing required fields',
+                'required': required_fields
+            }), 400
+        
+        # Validate amount is a positive number
+        try:
+            amount = float(budget_data['amount'])
+            if amount <= 0:
+                return jsonify({'error': 'Amount must be greater than 0'}), 400
+        except ValueError:
+            return jsonify({'error': 'Amount must be a valid number'}), 400
+        
+        # Validate period
+        valid_periods = ['monthly', 'quarterly', 'annual']
+        if budget_data['period'] not in valid_periods:
+            return jsonify({
+                'error': 'Invalid period',
+                'valid_values': valid_periods
+            }), 400
+        
+        # Validate start date
+        try:
+            datetime.datetime.strptime(budget_data['start_date'], '%Y-%m-%d')
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        
+        # Set timestamps
+        current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if budget for this category and period already exists
+        cursor.execute(
+            'SELECT id FROM budgets WHERE category = ? AND period = ?',
+            (budget_data['category'], budget_data['period'])
+        )
+        existing = cursor.fetchone()
+        
+        if existing:
+            conn.close()
+            return jsonify({
+                'error': 'Budget for this category and period already exists',
+                'budget_id': existing['id']
+            }), 409  # Conflict
+        
+        cursor.execute(
+            '''INSERT INTO budgets 
+               (category, amount, period, start_date, created_at, updated_at) 
+               VALUES (?, ?, ?, ?, ?, ?)''',
+            (
+                budget_data['category'],
+                budget_data['amount'],
+                budget_data['period'],
+                budget_data['start_date'],
+                current_time,
+                current_time
+            )
+        )
+        conn.commit()
+        new_id = cursor.lastrowid
+        conn.close()
+        
+        budget_data['id'] = new_id
+        budget_data['created_at'] = current_time
+        budget_data['updated_at'] = current_time
+        return jsonify(budget_data), 201
+    except Exception as e:
+        return jsonify({'error': 'Failed to add budget', 'details': str(e)}), 500
+
+@app.route('/budgets/<int:budget_id>', methods=['GET'])
+def get_budget(budget_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM budgets WHERE id = ?', (budget_id,))
+        budget = cursor.fetchone()
+        conn.close()
+        
+        if budget:
+            return jsonify(dict(budget))
+        else:
+            return jsonify({'error': 'Budget not found'}), 404
+    except Exception as e:
+        return jsonify({'error': 'Failed to get budget', 'details': str(e)}), 500
+
+@app.route('/budgets/<int:budget_id>', methods=['PUT'])
+def update_budget(budget_id):
+    try:
+        budget_data = request.json
+        
+        if not budget_data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Check if budget exists
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM budgets WHERE id = ?', (budget_id,))
+        existing = cursor.fetchone()
+        
+        if not existing:
+            conn.close()
+            return jsonify({'error': 'Budget not found'}), 404
+        
+        # Get existing data to merge with updates
+        existing = dict(existing)
+        
+        # Validate amount if provided
+        if 'amount' in budget_data:
+            try:
+                amount = float(budget_data['amount'])
+                if amount <= 0:
+                    return jsonify({'error': 'Amount must be greater than 0'}), 400
+            except ValueError:
+                return jsonify({'error': 'Amount must be a valid number'}), 400
+        
+        # Validate period if provided
+        if 'period' in budget_data:
+            valid_periods = ['monthly', 'quarterly', 'annual']
+            if budget_data['period'] not in valid_periods:
+                return jsonify({
+                    'error': 'Invalid period',
+                    'valid_values': valid_periods
+                }), 400
+        
+        # Validate start date if provided
+        if 'start_date' in budget_data:
+            try:
+                datetime.datetime.strptime(budget_data['start_date'], '%Y-%m-%d')
+            except ValueError:
+                return jsonify({'error': 'Invalid start date format. Use YYYY-MM-DD'}), 400
+        
+        # Check if category and period update would create duplicate
+        if ('category' in budget_data or 'period' in budget_data) and budget_data.get('category', existing['category']) != existing['category'] or budget_data.get('period', existing['period']) != existing['period']:
+            cursor.execute(
+                'SELECT id FROM budgets WHERE category = ? AND period = ? AND id != ?',
+                (
+                    budget_data.get('category', existing['category']),
+                    budget_data.get('period', existing['period']),
+                    budget_id
+                )
+            )
+            if cursor.fetchone():
+                conn.close()
+                return jsonify({'error': 'Budget for this category and period already exists'}), 409
+        
+        # Update timestamp
+        current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Merge existing data with updates
+        for key in ['category', 'amount', 'period', 'start_date']:
+            if key in budget_data:
+                existing[key] = budget_data[key]
+        
+        # Update the budget
+        cursor.execute(
+            '''UPDATE budgets 
+               SET category = ?, amount = ?, period = ?, start_date = ?, updated_at = ?
+               WHERE id = ?''',
+            (
+                existing['category'],
+                existing['amount'],
+                existing['period'],
+                existing['start_date'],
+                current_time,
+                budget_id
+            )
+        )
+        conn.commit()
+        
+        # Get the updated budget
+        cursor.execute('SELECT * FROM budgets WHERE id = ?', (budget_id,))
+        updated = dict(cursor.fetchone())
+        conn.close()
+        
+        return jsonify(updated)
+    except Exception as e:
+        return jsonify({'error': 'Failed to update budget', 'details': str(e)}), 500
+
+@app.route('/budgets/<int:budget_id>', methods=['DELETE'])
+def delete_budget(budget_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if budget exists
+        cursor.execute('SELECT id FROM budgets WHERE id = ?', (budget_id,))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'error': 'Budget not found'}), 404
+        
+        # Delete the budget
+        cursor.execute('DELETE FROM budgets WHERE id = ?', (budget_id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'Budget deleted successfully'})
+    except Exception as e:
+        return jsonify({'error': 'Failed to delete budget', 'details': str(e)}), 500
+
+@app.route('/budgets/progress', methods=['GET'])
+def get_all_budget_progress():
+    try:
+        # Get current date for calculations
+        current_date = datetime.datetime.now().date()
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get all budgets
+        cursor.execute('SELECT * FROM budgets')
+        budgets = [dict(row) for row in cursor.fetchall()]
+        
+        # Initialize the result array
+        budget_progress = []
+        
+        # Process each budget
+        for budget in budgets:
+            # Calculate budget progress
+            progress = calculate_budget_progress(cursor, budget, current_date)
+            budget_progress.append(progress)
+        
+        conn.close()
+        return jsonify(budget_progress)
+    except Exception as e:
+        return jsonify({'error': 'Failed to calculate budget progress', 'details': str(e)}), 500
+
+@app.route('/budgets/progress/<int:budget_id>', methods=['GET'])
+def get_budget_progress(budget_id):
+    try:
+        # Get current date for calculations
+        current_date = datetime.datetime.now().date()
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get the specific budget
+        cursor.execute('SELECT * FROM budgets WHERE id = ?', (budget_id,))
+        budget = cursor.fetchone()
+        
+        if not budget:
+            conn.close()
+            return jsonify({'error': 'Budget not found'}), 404
+        
+        # Calculate budget progress
+        budget_dict = dict(budget)
+        progress = calculate_budget_progress(cursor, budget_dict, current_date)
+        
+        conn.close()
+        return jsonify(progress)
+    except Exception as e:
+        return jsonify({'error': 'Failed to calculate budget progress', 'details': str(e)}), 500
+
+@app.route('/budgets/progress/category/<string:category>', methods=['GET'])
+def get_category_budget_progress(category):
+    try:
+        # Get current date for calculations
+        current_date = datetime.datetime.now().date()
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get budgets for the category
+        cursor.execute('SELECT * FROM budgets WHERE category = ?', (category,))
+        budgets = [dict(row) for row in cursor.fetchall()]
+        
+        if not budgets:
+            conn.close()
+            return jsonify({'error': f'No budgets found for category {category}'}), 404
+        
+        # Initialize the result array
+        budget_progress = []
+        
+        # Process each budget
+        for budget in budgets:
+            # Calculate budget progress
+            progress = calculate_budget_progress(cursor, budget, current_date)
+            budget_progress.append(progress)
+        
+        conn.close()
+        return jsonify(budget_progress)
+    except Exception as e:
+        return jsonify({'error': 'Failed to calculate budget progress', 'details': str(e)}), 500
+
+# Helper function to calculate budget progress
+def calculate_budget_progress(cursor, budget, current_date):
+    # Parse budget dates
+    start_date = datetime.datetime.strptime(budget['start_date'], '%Y-%m-%d').date()
+    
+    # Determine the end date based on period
+    if budget['period'] == 'monthly':
+        # End date is 1 month after start date
+        end_date_month = start_date.month + 1
+        end_date_year = start_date.year
+        if end_date_month > 12:
+            end_date_month = 1
+            end_date_year += 1
+        end_date = datetime.date(end_date_year, end_date_month, start_date.day)
+    elif budget['period'] == 'quarterly':
+        # End date is 3 months after start date
+        end_date_month = start_date.month + 3
+        end_date_year = start_date.year
+        if end_date_month > 12:
+            end_date_month = end_date_month - 12
+            end_date_year += 1
+        end_date = datetime.date(end_date_year, end_date_month, start_date.day)
+    elif budget['period'] == 'annual':
+        # End date is 1 year after start date
+        end_date = datetime.date(start_date.year + 1, start_date.month, start_date.day)
+    
+    # Calculate percentage of period elapsed
+    total_days = (end_date - start_date).days
+    days_elapsed = (current_date - start_date).days
+    
+    # If current date is outside the budget period, adjust calculations
+    if days_elapsed < 0:
+        # Budget period hasn't started yet
+        percentage_time_elapsed = 0
+        days_elapsed = 0
+    elif days_elapsed > total_days:
+        # Budget period has ended, show full period
+        percentage_time_elapsed = 100
+        days_elapsed = total_days
+    else:
+        percentage_time_elapsed = (days_elapsed / total_days) * 100
+    
+    # Calculate expected spending at this point in the period
+    expected_spending = (budget['amount'] * days_elapsed) / total_days
+    
+    # Get expenses for the category in the period
+    cursor.execute('''
+        SELECT SUM(amount) as total
+        FROM expenses
+        WHERE category = ? AND date >= ? AND date <= ?
+    ''', (budget['category'], start_date.strftime('%Y-%m-%d'), current_date.strftime('%Y-%m-%d')))
+    
+    result = cursor.fetchone()
+    actual_spending = result['total'] if result['total'] is not None else 0
+    
+    # Calculate percentage of budget used
+    percentage_used = (actual_spending / budget['amount']) * 100 if budget['amount'] > 0 else 0
+    
+    # Determine status based on current spending vs expected spending
+    if percentage_used <= 90:
+        status = 'on_track'  # Less than 90% of budget used
+    elif percentage_used <= 100:
+        status = 'warning'   # Between 90% and 100% of budget used
+    else:
+        status = 'exceeded'  # Over 100% of budget used
+    
+    # Calculate remaining budget
+    remaining = budget['amount'] - actual_spending
+    
+    # Create the progress object
+    progress = {
+        'budget_id': budget['id'],
+        'category': budget['category'],
+        'period': budget['period'],
+        'amount': budget['amount'],
+        'start_date': budget['start_date'],
+        'end_date': end_date.strftime('%Y-%m-%d'),
+        'actual_spending': actual_spending,
+        'expected_spending': expected_spending,
+        'remaining': remaining,
+        'percentage_used': percentage_used,
+        'percentage_time_elapsed': percentage_time_elapsed,
+        'status': status
+    }
+    
+    return progress
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)

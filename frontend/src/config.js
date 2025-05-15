@@ -7,7 +7,9 @@ const API_CONFIG = {
     RECEIPTS: '/receipts',
     UPLOADS: '/uploads',
     SUBSCRIPTIONS: '/subscriptions',
-    MONTHLY_EXPENSE: '/subscriptions/monthly-expense'
+    MONTHLY_EXPENSE: '/subscriptions/monthly-expense',
+    BUDGETS: '/budgets',
+    BUDGET_PROGRESS: '/budgets/progress'
   }
 };
 
