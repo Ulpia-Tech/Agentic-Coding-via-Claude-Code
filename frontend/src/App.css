@@ -1,9 +1,255 @@
+/* Theme variables */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --text-primary: #212529;
+  --text-secondary: #6c757d;
+  --border-color: #dee2e6;
+  --card-bg: #ffffff;
+  --card-border: rgba(0, 0, 0, 0.125);
+  --card-header-bg: #e9ecef;
+  --card-header-text: #212529;
+  --nav-bg: #f8f9fa;
+  --nav-active: #0d6efd;
+  --input-bg: #ffffff;
+  --input-border: #ced4da;
+  --input-text: #212529;
+  --input-label: #212529;
+  --button-primary: #0d6efd;
+  --button-hover: #0b5ed7;
+  --chart-title: #212529;
+  --chart-text: #212529;
+  --chart-grid: rgba(0, 0, 0, 0.1);
+  --text-muted: #6c757d;
+  --transition-speed: 0.3s;
+}
+
+/* Dark theme variables */
+[data-theme='dark'] {
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --text-primary: #f8f9fa;
+  --text-secondary: #e9ecef;
+  --border-color: #495057;
+  --card-bg: #2d2d2d;
+  --card-border: rgba(255, 255, 255, 0.125);
+  --card-header-bg: #1e1e1e;
+  --card-header-text: #e9ecef;
+  --nav-bg: #1e1e1e;
+  --nav-active: #6ea8fe;
+  --input-bg: #3d3d3d;
+  --input-border: #6c757d;
+  --input-text: #f8f9fa;
+  --input-label: #e9ecef;
+  --button-primary: #0d6efd;
+  --button-hover: #0b5ed7;
+  --chart-title: #f8f9fa;
+  --chart-text: #e9ecef;
+  --chart-grid: rgba(255, 255, 255, 0.2);
+  --text-muted: #ced4da;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color var(--transition-speed), color var(--transition-speed);
+}
+
 .App {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Card styles */
+.card {
+  background-color: var(--card-bg);
+  border-color: var(--card-border);
+  transition: background-color var(--transition-speed), border-color var(--transition-speed);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] .card {
+  background-color: var(--card-bg);
+  border-color: var(--card-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.card-header, .card-footer {
+  background-color: var(--card-header-bg);
+  color: var(--card-header-text);
+  border-color: var(--border-color);
+  transition: background-color var(--transition-speed), border-color var(--transition-speed), color var(--transition-speed);
+  font-weight: 600;
+  padding: 0.75rem 1.25rem;
+}
+
+.card-header h5, .card-header h6 {
+  color: var(--card-header-text);
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
+.card-title {
+  color: var(--card-header-text);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+/* Dashboard card text */
+.dashboard-card .display-4 {
+  color: var(--text-primary);
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+/* Nav styles */
+.nav-tabs {
+  border-color: var(--border-color);
+}
+
+.nav-tabs .nav-link {
+  color: var(--text-secondary);
+  transition: color var(--transition-speed), background-color var(--transition-speed);
+  font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+  font-weight: 600;
+}
+
+/* Form styles */
+.form-control, .form-select {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--input-text);
+  transition: all var(--transition-speed);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+}
+
+.form-control:focus, .form-select:focus {
+  background-color: var(--input-bg);
+  color: var(--input-text);
+  border-color: var(--button-primary);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+[data-theme='dark'] .form-control, 
+[data-theme='dark'] .form-select {
+  background-color: var(--input-bg);
+  color: var(--input-text);
+  border-color: var(--input-border);
+}
+
+[data-theme='dark'] .form-control:focus, 
+[data-theme='dark'] .form-select:focus {
+  box-shadow: 0 0 0 0.2rem rgba(110, 168, 254, 0.25);
+}
+
+.form-label, label {
+  color: var(--input-label);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+
+/* Form placeholders */
+.form-control::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+/* Table styles */
+.table {
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.table th {
+  color: var(--card-header-text);
+  font-weight: 600;
+  background-color: var(--card-header-bg);
+  border-color: var(--border-color);
+}
+
+.table td {
+  border-color: var(--border-color);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: var(--bg-secondary);
+}
+
+[data-theme='dark'] .table {
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .table tbody tr {
+  background-color: #252525;
+  color: white;
+}
+
+[data-theme='dark'] .table-striped tbody tr:nth-of-type(odd) {
+  background-color: #323232;
+}
+
+[data-theme='dark'] .table-striped tbody tr:nth-of-type(even) {
+  background-color: #252525;
+}
+
+/* Chart titles and labels */
+.chart-container h6, .chart-title {
+  color: var(--chart-title);
+  font-weight: 600;
+}
+
+/* Summary card specific styles */
+.summary-card-body {
+  background-color: var(--card-bg);
+}
+
+[data-theme='dark'] .summary-card-body h6,
+[data-theme='dark'] .summary-card-body h2 {
+  color: var(--text-primary);
+}
+
+/* Badge styling */
+.badge {
+  padding: 0.5em 0.75em;
+  font-weight: 500;
+  border-radius: 0.25rem;
+}
+
+[data-theme='dark'] .badge.bg-secondary {
+  background-color: #495057 !important;
+  color: #e9ecef;
+}
+
+[data-theme='dark'] .badge.bg-info {
+  background-color: #0dcaf0 !important;
+  color: #212529;
+}
+
+[data-theme='dark'] .text-muted {
+  color: #adb5bd !important;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  transition: all var(--transition-speed);
+}
+
+/* Component specific styles */
 .expense-card {
-  transition: transform 0.2s;
+  transition: transform 0.2s, background-color var(--transition-speed), box-shadow var(--transition-speed);
 }
 
 .expense-card:hover {
@@ -16,7 +262,7 @@
   transition: transform 0.2s;
   max-width: 100%;
   max-height: 200px;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
 }
 

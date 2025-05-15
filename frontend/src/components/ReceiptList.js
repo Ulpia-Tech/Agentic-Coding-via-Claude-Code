@@ -48,7 +48,7 @@ function ReceiptList({ receipts, onDeleteReceipt, isLoading }) {
       <Card.Body>
         {error && <Alert variant="danger" className="mb-3">{error}</Alert>}
         
-        <Table responsive hover>
+        <Table responsive hover striped>
           <thead>
             <tr>
               <th>Receipt</th>

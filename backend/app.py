@@ -357,33 +357,35 @@ def uploaded_file(filename):
 @app.route('/subscriptions', methods=['GET'])
 def get_subscriptions():
     try:
-        category = request.args.get('category')
-        billing_cycle = request.args.get('billing_cycle')
-        
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        conditions = []
-        params = []
-        
-        # Build parameterized query safely
-        if category:
-            conditions.append('category = ?')
-            params.append(category)
-            
-        if billing_cycle:
-            conditions.append('billing_cycle = ?')
-            params.append(billing_cycle)
+        # Apply filters if provided
+        category = request.args.get('category')
+        billing_cycle = request.args.get('billing_cycle')
         
         query = 'SELECT * FROM subscriptions'
-        if conditions:
-            query += ' WHERE ' + ' AND '.join(conditions)
+        params = []
+        
+        if category or billing_cycle:
+            query += ' WHERE'
+            
+            if category:
+                query += ' category = ?'
+                params.append(category)
+                
+            if billing_cycle:
+                if category:
+                    query += ' AND'
+                query += ' billing_cycle = ?'
+                params.append(billing_cycle)
         
         query += ' ORDER BY renewal_date ASC'
         
         cursor.execute(query, params)
         subscriptions = [dict(row) for row in cursor.fetchall()]
         conn.close()
+        
         return jsonify(subscriptions)
     except Exception as e:
         return jsonify({'error': 'Failed to get subscriptions', 'details': str(e)}), 500
@@ -396,12 +398,14 @@ def add_subscription():
         if not subscription_data:
             return jsonify({'error': 'No data provided'}), 400
         
-        # Validate required fields
         required_fields = ['name', 'amount', 'category', 'billing_cycle', 'start_date', 'renewal_date']
-        if not all(field in subscription_data for field in required_fields):
-            return jsonify({'error': f'Missing required fields. Required: {", ".join(required_fields)}'}), 400
+        if not all(k in subscription_data for k in required_fields):
+            return jsonify({
+                'error': 'Missing required fields',
+                'required': required_fields
+            }), 400
         
-        # Validate amount is a number and greater than 0
+        # Validate amount is a positive number
         try:
             amount = float(subscription_data['amount'])
             if amount <= 0:
@@ -409,38 +413,42 @@ def add_subscription():
         except ValueError:
             return jsonify({'error': 'Amount must be a valid number'}), 400
         
-        # Validate dates are in correct format
-        try:
-            start_date = datetime.datetime.strptime(subscription_data['start_date'], '%Y-%m-%d')
-            renewal_date = datetime.datetime.strptime(subscription_data['renewal_date'], '%Y-%m-%d')
-            
-            # Validate renewal date is after start date
-            if renewal_date <= start_date:
-                return jsonify({'error': 'Renewal date must be after start date'}), 400
-        except ValueError:
-            return jsonify({'error': 'Dates must be in YYYY-MM-DD format'}), 400
-        
         # Validate billing cycle
-        valid_billing_cycles = ['monthly', 'yearly']
-        if subscription_data['billing_cycle'] not in valid_billing_cycles:
-            return jsonify({'error': f'Billing cycle must be one of: {", ".join(valid_billing_cycles)}'}), 400
+        valid_cycles = ['monthly', 'quarterly', 'semi-annual', 'annual', 'yearly']
+        if subscription_data['billing_cycle'] not in valid_cycles:
+            return jsonify({
+                'error': 'Invalid billing cycle',
+                'valid_values': valid_cycles
+            }), 400
+        
+        # Validate dates
+        try:
+            datetime.datetime.strptime(subscription_data['start_date'], '%Y-%m-%d')
+            datetime.datetime.strptime(subscription_data['renewal_date'], '%Y-%m-%d')
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
         
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            'INSERT INTO subscriptions (name, amount, category, billing_cycle, start_date, renewal_date) VALUES (?, ?, ?, ?, ?, ?)',
-            (subscription_data['name'], amount, subscription_data['category'], 
-             subscription_data['billing_cycle'], subscription_data['start_date'], subscription_data['renewal_date'])
+            '''INSERT INTO subscriptions 
+               (name, amount, category, billing_cycle, start_date, renewal_date) 
+               VALUES (?, ?, ?, ?, ?, ?)''',
+            (
+                subscription_data['name'],
+                subscription_data['amount'],
+                subscription_data['category'],
+                subscription_data['billing_cycle'],
+                subscription_data['start_date'],
+                subscription_data['renewal_date']
+            )
         )
         conn.commit()
         new_id = cursor.lastrowid
-        
-        # Get the inserted subscription
-        cursor.execute('SELECT * FROM subscriptions WHERE id = ?', (new_id,))
-        new_subscription = dict(cursor.fetchone())
         conn.close()
         
-        return jsonify(new_subscription), 201
+        subscription_data['id'] = new_id
+        return jsonify(subscription_data), 201
     except Exception as e:
         return jsonify({'error': 'Failed to add subscription', 'details': str(e)}), 500
 
@@ -453,10 +461,10 @@ def get_subscription(subscription_id):
         subscription = cursor.fetchone()
         conn.close()
         
-        if not subscription:
+        if subscription:
+            return jsonify(dict(subscription))
+        else:
             return jsonify({'error': 'Subscription not found'}), 404
-            
-        return jsonify(dict(subscription))
     except Exception as e:
         return jsonify({'error': 'Failed to get subscription', 'details': str(e)}), 500
 
@@ -468,58 +476,78 @@ def update_subscription(subscription_id):
         if not subscription_data:
             return jsonify({'error': 'No data provided'}), 400
         
-        # Validate required fields
-        required_fields = ['name', 'amount', 'category', 'billing_cycle', 'start_date', 'renewal_date']
-        if not all(field in subscription_data for field in required_fields):
-            return jsonify({'error': f'Missing required fields. Required: {", ".join(required_fields)}'}), 400
-        
-        # Validate amount is a number and greater than 0
-        try:
-            amount = float(subscription_data['amount'])
-            if amount <= 0:
-                return jsonify({'error': 'Amount must be greater than 0'}), 400
-        except ValueError:
-            return jsonify({'error': 'Amount must be a valid number'}), 400
-        
-        # Validate dates are in correct format
-        try:
-            start_date = datetime.datetime.strptime(subscription_data['start_date'], '%Y-%m-%d')
-            renewal_date = datetime.datetime.strptime(subscription_data['renewal_date'], '%Y-%m-%d')
-            
-            # Validate renewal date is after start date
-            if renewal_date <= start_date:
-                return jsonify({'error': 'Renewal date must be after start date'}), 400
-        except ValueError:
-            return jsonify({'error': 'Dates must be in YYYY-MM-DD format'}), 400
-        
-        # Validate billing cycle
-        valid_billing_cycles = ['monthly', 'yearly']
-        if subscription_data['billing_cycle'] not in valid_billing_cycles:
-            return jsonify({'error': f'Billing cycle must be one of: {", ".join(valid_billing_cycles)}'}), 400
-        
         # Check if subscription exists
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT id FROM subscriptions WHERE id = ?', (subscription_id,))
-        if not cursor.fetchone():
+        cursor.execute('SELECT * FROM subscriptions WHERE id = ?', (subscription_id,))
+        existing = cursor.fetchone()
+        
+        if not existing:
             conn.close()
             return jsonify({'error': 'Subscription not found'}), 404
         
-        # Update subscription
+        # Get existing data to merge with updates
+        existing = dict(existing)
+        
+        # Validate amount if provided
+        if 'amount' in subscription_data:
+            try:
+                amount = float(subscription_data['amount'])
+                if amount <= 0:
+                    return jsonify({'error': 'Amount must be greater than 0'}), 400
+            except ValueError:
+                return jsonify({'error': 'Amount must be a valid number'}), 400
+        
+        # Validate billing cycle if provided
+        if 'billing_cycle' in subscription_data:
+            valid_cycles = ['monthly', 'quarterly', 'semi-annual', 'annual', 'yearly']
+            if subscription_data['billing_cycle'] not in valid_cycles:
+                return jsonify({
+                    'error': 'Invalid billing cycle',
+                    'valid_values': valid_cycles
+                }), 400
+        
+        # Validate dates if provided
+        if 'start_date' in subscription_data:
+            try:
+                datetime.datetime.strptime(subscription_data['start_date'], '%Y-%m-%d')
+            except ValueError:
+                return jsonify({'error': 'Invalid start date format. Use YYYY-MM-DD'}), 400
+                
+        if 'renewal_date' in subscription_data:
+            try:
+                datetime.datetime.strptime(subscription_data['renewal_date'], '%Y-%m-%d')
+            except ValueError:
+                return jsonify({'error': 'Invalid renewal date format. Use YYYY-MM-DD'}), 400
+        
+        # Merge existing data with updates
+        for key in ['name', 'amount', 'category', 'billing_cycle', 'start_date', 'renewal_date']:
+            if key in subscription_data:
+                existing[key] = subscription_data[key]
+        
+        # Update the subscription
         cursor.execute(
-            'UPDATE subscriptions SET name = ?, amount = ?, category = ?, billing_cycle = ?, start_date = ?, renewal_date = ? WHERE id = ?',
-            (subscription_data['name'], amount, subscription_data['category'], 
-             subscription_data['billing_cycle'], subscription_data['start_date'], 
-             subscription_data['renewal_date'], subscription_id)
+            '''UPDATE subscriptions 
+               SET name = ?, amount = ?, category = ?, billing_cycle = ?, start_date = ?, renewal_date = ?
+               WHERE id = ?''',
+            (
+                existing['name'],
+                existing['amount'],
+                existing['category'],
+                existing['billing_cycle'],
+                existing['start_date'],
+                existing['renewal_date'],
+                subscription_id
+            )
         )
         conn.commit()
         
         # Get the updated subscription
         cursor.execute('SELECT * FROM subscriptions WHERE id = ?', (subscription_id,))
-        updated_subscription = dict(cursor.fetchone())
+        updated = dict(cursor.fetchone())
         conn.close()
         
-        return jsonify(updated_subscription)
+        return jsonify(updated)
     except Exception as e:
         return jsonify({'error': 'Failed to update subscription', 'details': str(e)}), 500
 
@@ -535,7 +563,7 @@ def delete_subscription(subscription_id):
             conn.close()
             return jsonify({'error': 'Subscription not found'}), 404
         
-        # Delete subscription
+        # Delete the subscription
         cursor.execute('DELETE FROM subscriptions WHERE id = ?', (subscription_id,))
         conn.commit()
         conn.close()
@@ -545,27 +573,28 @@ def delete_subscription(subscription_id):
         return jsonify({'error': 'Failed to delete subscription', 'details': str(e)}), 500
 
 @app.route('/subscriptions/monthly-expense', methods=['GET'])
-def get_monthly_expense():
+def calculate_monthly_expense():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        # Calculate total monthly expense
-        cursor.execute('''
-        SELECT 
-            CASE 
-                WHEN billing_cycle = 'monthly' THEN amount
-                WHEN billing_cycle = 'yearly' THEN amount / 12
-                ELSE 0
-            END AS monthly_amount
-        FROM subscriptions
-        ''')
-        
-        results = cursor.fetchall()
+        cursor.execute('SELECT amount, billing_cycle FROM subscriptions')
+        subscriptions = cursor.fetchall()
         conn.close()
         
-        # Sum up the monthly amounts
-        monthly_expense = sum(result[0] for result in results)
+        # Calculate total monthly expense
+        monthly_expense = 0
+        for sub in subscriptions:
+            amount = sub['amount']
+            cycle = sub['billing_cycle']
+            
+            if cycle == 'monthly':
+                monthly_expense += amount
+            elif cycle == 'quarterly':
+                monthly_expense += amount / 3
+            elif cycle == 'semi-annual':
+                monthly_expense += amount / 6
+            elif cycle in ['annual', 'yearly']:
+                monthly_expense += amount / 12
         
         return jsonify({'monthly_expense': monthly_expense})
     except Exception as e:

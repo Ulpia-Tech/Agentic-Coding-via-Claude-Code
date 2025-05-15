@@ -34,7 +34,7 @@ const ExpenseList = ({ expenses, onDeleteExpense, isLoading }) => {
                 <tr key={expense.id}>
                   <td>{new Date(expense.date).toLocaleDateString()}</td>
                   <td>
-                    <span className="badge bg-secondary">{expense.category}</span>
+                    <span className="badge bg-primary">{expense.category}</span>
                   </td>
                   <td>{expense.description || '-'}</td>
                   <td>${parseFloat(expense.amount).toFixed(2)}</td>
