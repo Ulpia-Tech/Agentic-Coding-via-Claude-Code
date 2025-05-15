@@ -7,6 +7,7 @@ import ExpenseForm from './components/ExpenseForm';
 import ExpenseList from './components/ExpenseList';
 import ExpenseSummary from './components/ExpenseSummary';
 import ReceiptsPage from './components/ReceiptsPage';
+import SubscriptionsPage from './components/SubscriptionsPage';
 import './App.css';
 
 const API_URL = 'http://localhost:5001';
@@ -84,6 +85,9 @@ function App() {
           <Nav.Item>
             <Nav.Link as={Link} to="/receipts">Receipts</Nav.Link>
           </Nav.Item>
+          <Nav.Item>
+            <Nav.Link as={Link} to="/subscriptions">Subscriptions</Nav.Link>
+          </Nav.Item>
         </Nav>
         
         <Routes>
@@ -103,6 +107,7 @@ function App() {
             </Row>
           } />
           <Route path="/receipts" element={<ReceiptsPage />} />
+          <Route path="/subscriptions" element={<SubscriptionsPage />} />
           <Route path="/" element={<Navigate to="/expenses" replace />} />
         </Routes>
       </Container>
