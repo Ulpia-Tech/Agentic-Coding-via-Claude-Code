@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card } from 'react-bootstrap';
+import { Container, Row, Col, Card, ProgressBar } from 'react-bootstrap';
 import axios from 'axios';
 import API_CONFIG from '../config';
 
 const DashboardPage = () => {
   const [expenses, setExpenses] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
+  const [budgetProgress, setBudgetProgress] = useState([]);
   const [monthlySubscriptionCost, setMonthlySubscriptionCost] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,6 +26,10 @@ const DashboardPage = () => {
         // Fetch monthly subscription cost
         const monthlyExpenseResponse = await axios.get(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.MONTHLY_EXPENSE}`);
         setMonthlySubscriptionCost(monthlyExpenseResponse.data.monthly_expense);
+        
+        // Fetch budget progress
+        const budgetProgressResponse = await axios.get(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.BUDGET_PROGRESS}`);
+        setBudgetProgress(budgetProgressResponse.data);
         
         setError(null);
       } catch (err) {
@@ -139,6 +144,57 @@ const DashboardPage = () => {
             </Col>
           </Row>
 
+          {/* Budget Progress Cards */}
+          <Row className="mb-4">
+            <Col lg={12}>
+              <Card className="shadow">
+                <Card.Header>
+                  <h6 className="m-0 font-weight-bold">Budget Progress</h6>
+                </Card.Header>
+                <Card.Body>
+                  {budgetProgress.length === 0 ? (
+                    <div className="text-center text-muted py-4">
+                      <p>No budget data available</p>
+                      <p>Create budgets to track your spending against limits</p>
+                    </div>
+                  ) : (
+                    <Row>
+                      {budgetProgress.map(budget => (
+                        <Col lg={6} className="mb-4" key={budget.budget_id}>
+                          <Card className="border">
+                            <Card.Body>
+                              <h6 className="font-weight-bold">{budget.category}</h6>
+                              <div className="d-flex justify-content-between mb-1">
+                                <span>
+                                  ${budget.actual_spending.toFixed(2)} of ${budget.amount.toFixed(2)}
+                                </span>
+                                <span>
+                                  {budget.percentage_used.toFixed(0)}%
+                                </span>
+                              </div>
+                              <ProgressBar 
+                                now={Math.min(budget.percentage_used, 100)} 
+                                variant={
+                                  budget.status === 'on_track' ? 'success' : 
+                                  budget.status === 'warning' ? 'warning' : 'danger'
+                                }
+                                className="mb-2"
+                              />
+                              <div className="d-flex justify-content-between small text-muted">
+                                <span>Period: {budget.period}</span>
+                                <span>Remaining: ${budget.remaining.toFixed(2)}</span>
+                              </div>
+                            </Card.Body>
+                          </Card>
+                        </Col>
+                      ))}
+                    </Row>
+                  )}
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+          
           {/* Charts section placeholder */}
           <Row>
             <Col lg={6} className="mb-4">
