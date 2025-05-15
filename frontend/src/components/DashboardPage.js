@@ -1,153 +1,169 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Spinner, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card } from 'react-bootstrap';
 import axios from 'axios';
 import ExpensesByCategory from './dashboard/ExpensesByCategory';
 import ExpensesByMonth from './dashboard/ExpensesByMonth';
-import ExpenseTrends from './dashboard/ExpenseTrends';
-import ExpenseComparison from './dashboard/ExpenseComparison';
 import API_CONFIG from '../config';
-import { useTheme } from '../contexts/ThemeContext';
 
 const DashboardPage = () => {
   const [expenses, setExpenses] = useState([]);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [monthlySubscriptionCost, setMonthlySubscriptionCost] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { theme } = useTheme();
 
   useEffect(() => {
-    fetchExpenses();
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch expenses
+        const expensesResponse = await axios.get(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EXPENSES}`);
+        setExpenses(expensesResponse.data);
+        
+        // Fetch subscriptions
+        const subscriptionsResponse = await axios.get(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SUBSCRIPTIONS}`);
+        setSubscriptions(subscriptionsResponse.data);
+        
+        // Fetch monthly subscription cost
+        const monthlyExpenseResponse = await axios.get(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.MONTHLY_EXPENSE}`);
+        setMonthlySubscriptionCost(monthlyExpenseResponse.data.monthly_expense);
+        
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
   }, []);
 
-  const fetchExpenses = async () => {
-    try {
-      setIsLoading(true);
-      const response = await axios.get(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EXPENSES}`);
-      setExpenses(response.data);
-      setError(null);
-    } catch (err) {
-      setError(`Failed to fetch expenses: ${err.response?.data?.error || err.message}`);
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
+  // Calculate total expenses
+  const calculateTotalExpenses = () => {
+    return expenses.reduce((total, expense) => total + expense.amount, 0).toFixed(2);
   };
-
-  if (isLoading) {
-    return (
-      <div className="text-center my-5">
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </Spinner>
-        <p className="mt-2">Loading dashboard data...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return <Alert variant="danger">{error}</Alert>;
-  }
+  
+  // Calculate average expense
+  const calculateAverageExpense = () => {
+    if (expenses.length === 0) return 0;
+    return (expenses.reduce((total, expense) => total + expense.amount, 0) / expenses.length).toFixed(2);
+  };
+  
+  // Get current month expenses
+  const getCurrentMonthExpenses = () => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    const currentMonthExpenses = expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
+    });
+    
+    return currentMonthExpenses.reduce((total, expense) => total + expense.amount, 0).toFixed(2);
+  };
 
   return (
     <Container fluid>
-      <h2 className="mb-4">Analytics Dashboard</h2>
+      {error && <div className="alert alert-danger">{error}</div>}
       
-      <Row className="mb-4">
-        <Col md={6} lg={3} className="mb-4 mb-lg-0">
-          <Card className="h-100 dashboard-card">
-            <Card.Body>
-              <Card.Title>Total Expenses</Card.Title>
-              <h2 className="display-4 text-center my-3">
-                ${expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0).toFixed(2)}
-              </h2>
-              <Card.Text className="text-muted text-center">
-                From {expenses.length} expense{expenses.length !== 1 ? 's' : ''}
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </Col>
-        
-        <Col md={6} lg={3} className="mb-4 mb-lg-0">
-          <Card className="h-100 dashboard-card">
-            <Card.Body>
-              <Card.Title>Average Expense</Card.Title>
-              <h2 className="display-4 text-center my-3">
-                ${expenses.length ? (expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0) / expenses.length).toFixed(2) : '0.00'}
-              </h2>
-              <Card.Text className="text-muted text-center">
-                Per expense
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </Col>
-        
-        <Col md={6} lg={3} className="mb-4 mb-lg-0">
-          <Card className="h-100 dashboard-card">
-            <Card.Body>
-              <Card.Title>Largest Expense</Card.Title>
-              <h2 className="display-4 text-center my-3">
-                ${expenses.length ? Math.max(...expenses.map(expense => parseFloat(expense.amount))).toFixed(2) : '0.00'}
-              </h2>
-              <Card.Text className="text-muted text-center">
-                Highest individual amount
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </Col>
-        
-        <Col md={6} lg={3}>
-          <Card className="h-100 dashboard-card">
-            <Card.Body>
-              <Card.Title>Categories</Card.Title>
-              <h2 className="display-4 text-center my-3">
-                {[...new Set(expenses.map(expense => expense.category))].length}
-              </h2>
-              <Card.Text className="text-muted text-center">
-                Unique expense categories
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-      
-      <Row>
-        <Col lg={6} className="mb-4">
-          <Card className="dashboard-card">
-            <Card.Header as="h5">Expenses by Category</Card.Header>
-            <Card.Body>
-              <ExpensesByCategory expenses={expenses} theme={theme} />
-            </Card.Body>
-          </Card>
-        </Col>
-        
-        <Col lg={6} className="mb-4">
-          <Card className="dashboard-card">
-            <Card.Header as="h5">Expenses by Month</Card.Header>
-            <Card.Body>
-              <ExpensesByMonth expenses={expenses} theme={theme} />
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-      
-      <Row>
-        <Col lg={6} className="mb-4">
-          <Card className="dashboard-card">
-            <Card.Header as="h5">Expense Trends</Card.Header>
-            <Card.Body>
-              <ExpenseTrends expenses={expenses} theme={theme} />
-            </Card.Body>
-          </Card>
-        </Col>
-        
-        <Col lg={6} className="mb-4">
-          <Card className="dashboard-card">
-            <Card.Header as="h5">Category Comparison</Card.Header>
-            <Card.Body>
-              <ExpenseComparison expenses={expenses} theme={theme} />
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+      {isLoading ? (
+        <div className="text-center my-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-2">Loading dashboard data...</p>
+        </div>
+      ) : (
+        <>
+          {/* Summary Cards */}
+          <Row className="mb-4">
+            <Col lg={3} md={6} className="mb-4">
+              <Card className="border-left-primary shadow h-100 py-2">
+                <Card.Body>
+                  <Row className="align-items-center">
+                    <Col>
+                      <div className="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                        Total Expenses
+                      </div>
+                      <div className="h5 mb-0 font-weight-bold">${calculateTotalExpenses()}</div>
+                    </Col>
+                    <Col xs="auto">
+                      <i className="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+            </Col>
+
+            <Col lg={3} md={6} className="mb-4">
+              <Card className="border-left-success shadow h-100 py-2">
+                <Card.Body>
+                  <Row className="align-items-center">
+                    <Col>
+                      <div className="text-xs font-weight-bold text-success text-uppercase mb-1">
+                        Current Month Expenses
+                      </div>
+                      <div className="h5 mb-0 font-weight-bold">${getCurrentMonthExpenses()}</div>
+                    </Col>
+                    <Col xs="auto">
+                      <i className="fas fa-calendar fa-2x text-gray-300"></i>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+            </Col>
+
+            <Col lg={3} md={6} className="mb-4">
+              <Card className="border-left-info shadow h-100 py-2">
+                <Card.Body>
+                  <Row className="align-items-center">
+                    <Col>
+                      <div className="text-xs font-weight-bold text-info text-uppercase mb-1">
+                        Monthly Subscription Cost
+                      </div>
+                      <div className="h5 mb-0 font-weight-bold">${monthlySubscriptionCost.toFixed(2)}</div>
+                    </Col>
+                    <Col xs="auto">
+                      <i className="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+            </Col>
+
+            <Col lg={3} md={6} className="mb-4">
+              <Card className="border-left-warning shadow h-100 py-2">
+                <Card.Body>
+                  <Row className="align-items-center">
+                    <Col>
+                      <div className="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                        Average Expense
+                      </div>
+                      <div className="h5 mb-0 font-weight-bold">${calculateAverageExpense()}</div>
+                    </Col>
+                    <Col xs="auto">
+                      <i className="fas fa-comments fa-2x text-gray-300"></i>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+
+          {/* Charts */}
+          <Row>
+            <Col lg={6}>
+              <ExpensesByCategory expenses={expenses} />
+            </Col>
+            <Col lg={6}>
+              <ExpensesByMonth expenses={expenses} />
+            </Col>
+          </Row>
+        </>
+      )}
     </Container>
   );
 };

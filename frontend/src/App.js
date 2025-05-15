@@ -7,6 +7,7 @@ import ExpenseForm from './components/ExpenseForm';
 import ExpenseList from './components/ExpenseList';
 import ExpenseSummary from './components/ExpenseSummary';
 import ReceiptsPage from './components/ReceiptsPage';
+import SubscriptionsPage from './components/SubscriptionsPage';
 import DashboardPage from './components/DashboardPage';
 import ThemeToggle from './components/ThemeToggle';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -90,6 +91,9 @@ function App() {
               <Nav.Link as={Link} to="/receipts">Receipts</Nav.Link>
             </Nav.Item>
             <Nav.Item>
+              <Nav.Link as={Link} to="/subscriptions">Subscriptions</Nav.Link>
+            </Nav.Item>
+            <Nav.Item>
               <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
             </Nav.Item>
           </Nav>
@@ -111,6 +115,7 @@ function App() {
               </Row>
             } />
             <Route path="/receipts" element={<ReceiptsPage />} />
+            <Route path="/subscriptions" element={<SubscriptionsPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/" element={<Navigate to="/expenses" replace />} />
           </Routes>

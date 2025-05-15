@@ -1,156 +1,136 @@
-import React, { useMemo } from 'react';
-import PropTypes from 'prop-types';
+import React, { useContext } from 'react';
 import { Bar } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
+import { ThemeContext } from '../../contexts/ThemeContext';
+import { Card } from 'react-bootstrap';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const ExpensesByMonth = ({ expenses, theme }) => {
-  // Process expenses by month
-  const chartData = useMemo(() => {
-    // Group expenses by month
-    const months = {};
-    const monthNames = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-
-    expenses.forEach((expense) => {
-      const date = new Date(expense.date);
-      const monthYear = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+const ExpensesByMonth = ({ expenses }) => {
+  const { theme } = useContext(ThemeContext);
+  
+  // Process data for monthly expenses
+  const processMonthlyData = () => {
+    const monthlyData = {};
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    // Initialize all months with 0
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
+    // Get data for last 6 months
+    for (let i = 5; i >= 0; i--) {
+      let month = currentMonth - i;
+      let year = currentYear;
       
-      if (!months[monthYear]) {
-        months[monthYear] = 0;
+      // Adjust for previous year if needed
+      if (month < 0) {
+        month += 12;
+        year -= 1;
       }
-      months[monthYear] += parseFloat(expense.amount);
+      
+      const monthKey = `${year}-${month + 1}`;
+      monthlyData[monthKey] = {
+        label: `${monthNames[month]} ${year}`,
+        amount: 0
+      };
+    }
+    
+    // Sum expenses by month
+    expenses.forEach(expense => {
+      const date = new Date(expense.date);
+      const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
+      
+      if (monthlyData[monthKey]) {
+        monthlyData[monthKey].amount += expense.amount;
+      }
     });
-
-    // Sort months chronologically
-    const sortedMonths = {};
-    Object.keys(months)
-      .sort((a, b) => {
-        const [monthA, yearA] = a.split(' ');
-        const [monthB, yearB] = b.split(' ');
-        const monthIndexA = monthNames.indexOf(monthA);
-        const monthIndexB = monthNames.indexOf(monthB);
-        
-        if (yearA !== yearB) return yearA - yearB;
-        return monthIndexA - monthIndexB;
-      })
-      .forEach((key) => {
-        sortedMonths[key] = months[key];
-      });
-
-    return {
-      labels: Object.keys(sortedMonths),
-      datasets: [
-        {
-          label: 'Expenses',
-          data: Object.values(sortedMonths),
-          backgroundColor: 'rgba(54, 162, 235, 0.7)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1,
-        },
-      ],
-    };
-  }, [expenses]);
-
-  // No data case
-  if (expenses.length === 0) {
-    return <div className="text-center p-5">No expense data available</div>;
-  }
-
+    
+    // Convert to arrays for chart
+    return Object.values(monthlyData);
+  };
+  
+  const monthlyData = processMonthlyData();
+  
+  // Chart data
+  const data = {
+    labels: monthlyData.map(item => item.label),
+    datasets: [
+      {
+        label: 'Monthly Expenses',
+        data: monthlyData.map(item => item.amount),
+        backgroundColor: theme === 'dark' ? 'rgba(78, 115, 223, 0.8)' : 'rgba(78, 115, 223, 0.7)',
+        borderColor: '#4e73df',
+        borderWidth: 1,
+        borderRadius: 5,
+        hoverBackgroundColor: theme === 'dark' ? 'rgba(78, 115, 223, 1)' : 'rgba(78, 115, 223, 0.9)',
+      }
+    ]
+  };
+  
   // Chart options
   const options = {
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        backgroundColor: theme === 'dark' ? '#3d3d3d' : 'rgba(0, 0, 0, 0.8)',
+        titleColor: theme === 'dark' ? '#ffffff' : '#ffffff',
+        bodyColor: theme === 'dark' ? '#e9ecef' : '#ffffff',
+        callbacks: {
+          label: function(context) {
+            const value = context.raw || 0;
+            return `$${value.toFixed(2)}`;
+          }
+        }
+      }
+    },
     responsive: true,
     maintainAspectRatio: false,
     scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          color: theme === 'dark' ? '#e9ecef' : '#212529',
-          callback: (value) => `$${value}`,
-          font: {
-            weight: 500
-          }
-        },
-        grid: {
-          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)',
-        },
-        border: {
-          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.1)',
-        },
-      },
       x: {
-        ticks: {
-          color: theme === 'dark' ? '#e9ecef' : '#212529',
-          font: {
-            weight: 500
-          }
-        },
         grid: {
           display: false,
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
         },
-        border: {
-          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.1)',
+        ticks: {
+          color: theme === 'dark' ? '#e9ecef' : '#212529'
         }
       },
-    },
-    plugins: {
-      legend: {
-        labels: {
+      y: {
+        grid: {
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+        },
+        ticks: {
           color: theme === 'dark' ? '#e9ecef' : '#212529',
-          font: {
-            weight: 500
+          callback: function(value) {
+            return '$' + value;
           }
         },
-      },
-      tooltip: {
-        callbacks: {
-          label: (context) => `Total: $${context.raw.toFixed(2)}`,
-        },
-        backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-        titleColor: theme === 'dark' ? '#ffffff' : '#000000',
-        bodyColor: theme === 'dark' ? '#ffffff' : '#000000',
-        borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
-        borderWidth: 1
-      },
-    },
+        beginAtZero: true
+      }
+    }
   };
-
+  
   return (
-    <div style={{ height: '300px' }}>
-      <Bar data={chartData} options={options} />
-    </div>
+    <Card className="shadow mb-4">
+      <Card.Header>
+        <h6 className="m-0 font-weight-bold">Monthly Expense Trend</h6>
+      </Card.Header>
+      <Card.Body>
+        {expenses.length > 0 ? (
+          <div className="chart-container" style={{ height: '300px' }}>
+            <Bar data={data} options={options} />
+          </div>
+        ) : (
+          <div className="text-center text-muted py-5">
+            No expense data available
+          </div>
+        )}
+      </Card.Body>
+    </Card>
   );
-};
-
-ExpensesByMonth.propTypes = {
-  expenses: PropTypes.arrayOf(
-    PropTypes.shape({
-      id: PropTypes.number,
-      amount: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-      category: PropTypes.string,
-      description: PropTypes.string,
-      date: PropTypes.string,
-    })
-  ).isRequired,
-  theme: PropTypes.string.isRequired,
 };
 
 export default ExpensesByMonth;

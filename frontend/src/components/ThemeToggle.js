@@ -1,19 +1,20 @@
-import React from 'react';
+import React, { useContext } from 'react';
+import { ThemeContext } from '../contexts/ThemeContext';
 import { Button } from 'react-bootstrap';
-import { useTheme } from '../contexts/ThemeContext';
+import { FaSun, FaMoon } from 'react-icons/fa';
 
 const ThemeToggle = () => {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useContext(ThemeContext);
 
   return (
     <Button 
-      variant={theme === 'light' ? 'dark' : 'light'}
+      variant={theme === 'light' ? 'outline-dark' : 'outline-light'} 
       onClick={toggleTheme}
       className="theme-toggle"
-      aria-label="Toggle theme"
-      size="sm"
+      title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+      aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
     >
-      {theme === 'light' ? '🌙' : '☀️'} {theme === 'light' ? 'Dark' : 'Light'} Mode
+      {theme === 'light' ? <FaMoon /> : <FaSun />}
     </Button>
   );
 };
