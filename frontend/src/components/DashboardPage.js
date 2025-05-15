@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card } from 'react-bootstrap';
 import axios from 'axios';
-import ExpensesByCategory from './dashboard/ExpensesByCategory';
-import ExpensesByMonth from './dashboard/ExpensesByMonth';
 import API_CONFIG from '../config';
 
 const DashboardPage = () => {
@@ -90,9 +88,6 @@ const DashboardPage = () => {
                       </div>
                       <div className="h5 mb-0 font-weight-bold">${calculateTotalExpenses()}</div>
                     </Col>
-                    <Col xs="auto">
-                      <i className="fas fa-dollar-sign fa-2x text-gray-300"></i>
-                    </Col>
                   </Row>
                 </Card.Body>
               </Card>
@@ -107,9 +102,6 @@ const DashboardPage = () => {
                         Current Month Expenses
                       </div>
                       <div className="h5 mb-0 font-weight-bold">${getCurrentMonthExpenses()}</div>
-                    </Col>
-                    <Col xs="auto">
-                      <i className="fas fa-calendar fa-2x text-gray-300"></i>
                     </Col>
                   </Row>
                 </Card.Body>
@@ -126,9 +118,6 @@ const DashboardPage = () => {
                       </div>
                       <div className="h5 mb-0 font-weight-bold">${monthlySubscriptionCost.toFixed(2)}</div>
                     </Col>
-                    <Col xs="auto">
-                      <i className="fas fa-clipboard-list fa-2x text-gray-300"></i>
-                    </Col>
                   </Row>
                 </Card.Body>
               </Card>
@@ -144,22 +133,39 @@ const DashboardPage = () => {
                       </div>
                       <div className="h5 mb-0 font-weight-bold">${calculateAverageExpense()}</div>
                     </Col>
-                    <Col xs="auto">
-                      <i className="fas fa-comments fa-2x text-gray-300"></i>
-                    </Col>
                   </Row>
                 </Card.Body>
               </Card>
             </Col>
           </Row>
 
-          {/* Charts */}
+          {/* Charts section placeholder */}
           <Row>
-            <Col lg={6}>
-              <ExpensesByCategory expenses={expenses} />
+            <Col lg={6} className="mb-4">
+              <Card className="shadow">
+                <Card.Header>
+                  <h6 className="m-0 font-weight-bold">Expenses by Category</h6>
+                </Card.Header>
+                <Card.Body style={{ height: '300px' }} className="d-flex align-items-center justify-content-center">
+                  <div className="text-center text-muted">
+                    <p>Chart visualization coming soon</p>
+                    <p>View your expense distribution by category</p>
+                  </div>
+                </Card.Body>
+              </Card>
             </Col>
-            <Col lg={6}>
-              <ExpensesByMonth expenses={expenses} />
+            <Col lg={6} className="mb-4">
+              <Card className="shadow">
+                <Card.Header>
+                  <h6 className="m-0 font-weight-bold">Monthly Expense Trend</h6>
+                </Card.Header>
+                <Card.Body style={{ height: '300px' }} className="d-flex align-items-center justify-content-center">
+                  <div className="text-center text-muted">
+                    <p>Chart visualization coming soon</p>
+                    <p>Track your expense trends over time</p>
+                  </div>
+                </Card.Body>
+              </Card>
             </Col>
           </Row>
         </>

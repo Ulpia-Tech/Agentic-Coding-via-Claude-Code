@@ -10,26 +10,31 @@ const SubscriptionsPage = () => {
   const [monthlyTotal, setMonthlyTotal] = useState(0);
 
   useEffect(() => {
-    const fetchSubscriptions = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
+        // Try to load subscriptions
+        console.log('Fetching from:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SUBSCRIPTIONS}`);
         const response = await axios.get(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SUBSCRIPTIONS}`);
+        console.log('Subscription response:', response.data);
         setSubscriptions(response.data);
         
-        // Get monthly expense
+        // Also get monthly expense
         const monthlyResponse = await axios.get(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.MONTHLY_EXPENSE}`);
-        setMonthlyTotal(monthlyResponse.data.monthly_expense);
+        console.log('Monthly expense response:', monthlyResponse.data);
+        setMonthlyTotal(monthlyResponse.data.monthly_expense || 0);
         
         setError(null);
       } catch (err) {
         console.error('Error fetching subscriptions:', err);
         setError('Failed to load subscriptions');
+        setSubscriptions([]);
       } finally {
         setIsLoading(false);
       }
     };
     
-    fetchSubscriptions();
+    fetchData();
   }, []);
 
   // Calculate renewal status based on date

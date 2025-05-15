@@ -5,7 +5,9 @@ const API_CONFIG = {
     EXPENSES: '/expenses',
     CATEGORIES: '/categories',
     RECEIPTS: '/receipts',
-    UPLOADS: '/uploads'
+    UPLOADS: '/uploads',
+    SUBSCRIPTIONS: '/subscriptions',
+    MONTHLY_EXPENSE: '/subscriptions/monthly-expense'
   }
 };
 
