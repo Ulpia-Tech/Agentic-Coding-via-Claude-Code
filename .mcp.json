@@ -1,0 +1,12 @@
+{
+    "mcpServers": {
+        "software_engineer": {
+            "command": "claude",
+            "args": [
+                "mcp",
+                "serve"
+            ],
+            "env": {}
+        }
+    }
+}
