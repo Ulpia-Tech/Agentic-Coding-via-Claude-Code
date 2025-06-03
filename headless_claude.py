@@ -22,7 +22,7 @@ def run_claude_on_files(files, prompt):
     """Run claude on each file with the given prompt."""
     for file in files:
         print(f"Processing: {file}")
-        cmd = f'claude -p "{prompt}" {file} --dangerously-skip-permissions'
+        cmd = f'claude -p "{prompt} in {file}" --dangerously-skip-permissions'
         try:
             subprocess.run(cmd, shell=True, check=True)
         except subprocess.CalledProcessError as e:
