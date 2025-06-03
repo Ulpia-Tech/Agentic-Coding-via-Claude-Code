@@ -1,0 +1,520 @@
+# Backend Dependencies (requirements.txt)
+
+The requirements.txt file manages Python package dependencies for the Flask backend application.
+
+## Dependencies
+- **flask==2.0.1**: Core web framework for building REST API endpoints
+- **flask-cors==3.0.10**: Enables Cross-Origin Resource Sharing for frontend-backend communication
+- **werkzeug==2.0.3**: WSGI utility library that Flask depends on
+- **pytest==7.3.1**: Testing framework for unit tests
+
+## Role
+This file ensures consistent dependency versions across different environments and is used with `pip install -r requirements.txt` during setup.
+
+# Database (expenses.db)
+
+The expenses.db file is a SQLite 3.x database that serves as the primary data store for the expense tracking application.
+
+## Database Schema
+
+### Tables
+1. **expenses**: Stores individual expense records
+   - `id` (INTEGER PRIMARY KEY): Auto-incrementing unique identifier
+   - `amount` (REAL NOT NULL): Expense amount
+   - `category` (TEXT NOT NULL): Expense category
+   - `description` (TEXT): Optional description
+   - `date` (TEXT NOT NULL): Expense date in YYYY-MM-DD format
+
+2. **receipts**: Stores receipt file metadata linked to expenses
+   - `id` (INTEGER PRIMARY KEY): Auto-incrementing unique identifier  
+   - `filename` (TEXT NOT NULL): Generated unique filename for stored receipt
+   - `original_filename` (TEXT NOT NULL): Original uploaded filename
+   - `expense_id` (INTEGER): Foreign key to expenses table (nullable)
+   - `description` (TEXT): Optional description
+   - `upload_date` (TEXT NOT NULL): Upload timestamp
+
+3. **subscriptions**: Tracks recurring subscription services
+   - `id` (INTEGER PRIMARY KEY): Auto-incrementing unique identifier
+   - `name` (TEXT NOT NULL): Subscription service name
+   - `amount` (REAL NOT NULL): Subscription cost
+   - `category` (TEXT NOT NULL): Service category
+   - `billing_cycle` (TEXT NOT NULL): Billing frequency (monthly, quarterly, etc.)
+   - `start_date` (TEXT NOT NULL): Service start date
+   - `renewal_date` (TEXT NOT NULL): Next renewal date
+
+4. **budgets**: Manages budget limits by category and time period
+   - `id` (INTEGER PRIMARY KEY): Auto-incrementing unique identifier
+   - `category` (TEXT NOT NULL): Budget category matching expense categories
+   - `amount` (REAL NOT NULL): Budget limit amount
+   - `period` (TEXT NOT NULL): Budget period (monthly, quarterly, annual)
+   - `start_date` (TEXT NOT NULL): Budget period start date
+   - `created_at` (TEXT NOT NULL): Record creation timestamp
+   - `updated_at` (TEXT NOT NULL): Last modification timestamp
+
+## Database Initialization
+- Database is automatically created by `init_db()` function in app.py on first run
+- Existing databases are migrated by adding missing tables as needed
+- Sample data can be generated using `seed_data.py` script
+
+## Role
+Central data persistence layer supporting expense tracking, receipt management, subscription monitoring, and budget management features of the application.
+
+# .gitignore
+
+The .gitignore file specifies intentionally untracked files and directories that Git should ignore.
+
+## Patterns
+
+### Python Artifacts
+- **__pycache__/**: Compiled Python bytecode cache directories
+- ***.py[cod]**: Python bytecode files (.pyc, .pyo, .pyd)
+- ***.so**: Shared object files
+- **venv/**: Virtual environment directory
+- **build/, dist/, eggs/**: Package build artifacts
+- ***.egg-info/**: Package metadata
+
+### Flask Specific
+- **instance/**: Flask instance folder for configuration files
+- **.webassets-cache**: Web assets cache
+
+### Database Files
+- ***.sqlite**: SQLite database files
+- ***.db**: Database files (covers expenses.db in development)
+
+### System Files
+- **.DS_Store**: macOS system metadata files
+- **.env**: Environment variable files containing secrets
+
+### Uploads
+- **uploads/**: User-uploaded receipt files directory
+
+## Role
+Prevents sensitive data (database files, environment variables), development artifacts, and system-specific files from being committed to version control, maintaining clean repository state and security.
+
+# Flask Application (app.py)
+
+The app.py file is the main Flask application that serves as the backend REST API for the expense tracking system.
+
+## Core Architecture
+- **Framework**: Flask web framework with CORS enabled for frontend communication
+- **Database**: SQLite with row factory for dict-like results
+- **File Handling**: Secure PNG receipt uploads with validation
+- **Security**: Path traversal protection, file type validation, and input sanitization
+
+## Key Components
+
+### Database Management
+- `init_db()`: Automatically creates database schema and handles migrations
+- `get_db_connection()`: Provides consistent database connections with row factory
+- Four main tables: expenses, receipts, subscriptions, budgets
+
+### API Endpoints
+
+#### Expenses Management
+- `GET /expenses`: Retrieve all expenses ordered by date
+- `POST /expenses`: Add new expense with validation
+- `DELETE /expenses/<id>`: Remove specific expense
+- `GET /categories`: Get distinct expense categories
+
+#### Receipt Management  
+- `GET /receipts`: List all receipts with expense details via JOIN
+- `POST /receipts`: Upload PNG receipts with metadata
+- `DELETE /receipts/<id>`: Remove receipt and associated file
+- `GET /uploads/<filename>`: Serve receipt files securely
+
+#### Subscription Management
+- `GET /subscriptions`: List subscriptions with optional filtering
+- `POST /subscriptions`: Create new subscription with validation
+- `GET /subscriptions/<id>`: Get specific subscription
+- `PUT /subscriptions/<id>`: Update subscription details
+- `DELETE /subscriptions/<id>`: Remove subscription
+- `GET /subscriptions/monthly-expense`: Calculate total monthly cost
+
+#### Budget Management
+- `GET /budgets`: List budgets with optional filtering
+- `POST /budgets`: Create budget with duplicate prevention
+- `GET /budgets/<id>`: Get specific budget
+- `PUT /budgets/<id>`: Update budget with conflict checking
+- `DELETE /budgets/<id>`: Remove budget
+- `GET /budgets/progress`: Calculate progress for all budgets
+- `GET /budgets/progress/<id>`: Get specific budget progress
+- `GET /budgets/progress/category/<category>`: Get category budget progress
+
+### Helper Functions
+- `validate_image()`: Validates PNG file signature for security
+- `calculate_budget_progress()`: Complex budget tracking with time-based analysis
+
+## Configuration
+- Runs on port 5001 with debug mode enabled
+- 10MB file upload limit for receipts
+- CORS configured for localhost:3000 frontend
+- Uploads stored in local `uploads/` directory
+
+## Role
+Serves as the complete backend API providing expense tracking, receipt management, subscription monitoring, and budget analysis functionality with comprehensive validation and security measures.
+
+# Database Seeding (seed_data.py)
+
+The seed_data.py file is a database seeding script that populates the SQLite database with realistic sample data for development and testing purposes.
+
+## Primary Functions
+- Clears existing data from the database (expenses, subscriptions, budgets)
+- Generates 350 random expenses over the past year with realistic distributions
+- Creates 15 sample subscriptions with various billing cycles
+- Generates up to 9 budget entries for different categories
+
+## Data Generation Features
+- Uses weighted random distributions for realistic expense patterns
+- Creates expenses with appropriate amount ranges per category (e.g., Travel: $100-1500, Food: $8-150)
+- Generates subscription data with realistic pricing based on service type
+- Creates budgets with appropriate monthly amounts per category
+- Uses triangular distribution for dates to favor more recent expenses
+
+## Categories Supported
+- Food & Dining, Groceries, Transportation, Entertainment
+- Shopping, Utilities, Travel, Healthcare, Education
+- Housing, Personal Care, Gifts & Donations, Fitness
+
+## Usage
+Run `python seed_data.py` from the backend directory to populate the database with sample data for development.
+
+# Test Initialization (__init__.py)
+
+The __init__.py file in the tests directory is an empty Python module initialization file that makes the tests directory a Python package.
+
+## Role
+- Makes the `tests/` directory a valid Python package that can be imported
+- Allows test discovery tools like `unittest` and `pytest` to recognize the directory as containing test modules
+- Enables relative imports between test files within the package
+- Required for the command `python -m unittest discover -s tests` to work properly
+
+## Test Structure
+The tests directory contains unit test files for different application components:
+- `test_app.py`: Tests for main Flask application endpoints
+- `test_budgets.py`: Tests for budget management functionality  
+- `test_receipts.py`: Tests for receipt upload and management
+- `test_subscriptions.py`: Tests for subscription management features
+
+# Subscription Management Tests (test_subscriptions.py)
+
+The test_subscriptions.py file contains comprehensive unit tests for the subscription management functionality of the Flask backend application.
+
+## Test Architecture
+- **Framework**: Python unittest with Flask test client
+- **Database**: Uses temporary SQLite database for each test with proper setup/teardown
+- **Isolation**: Each test creates a fresh database schema ensuring test independence
+- **Coverage**: Tests all CRUD operations plus filtering and calculation features
+
+## Test Database Setup
+- Creates temporary database files using `tempfile.mkstemp()`
+- Automatically creates both `expenses` and `subscriptions` tables
+- Sets up test upload directory for file handling tests
+- Properly cleans up all temporary resources after each test
+
+## Test Categories
+
+### Basic CRUD Operations
+- **test_create_subscription()**: Validates POST /subscriptions creates new subscriptions with all required fields
+- **test_get_subscription_by_id()**: Tests GET /subscriptions/<id> retrieval and 404 handling
+- **test_update_subscription()**: Validates PUT /subscriptions/<id> updates and non-existent ID handling
+- **test_delete_subscription()**: Tests DELETE /subscriptions/<id> removal and 404 responses
+- **test_empty_subscriptions_list()**: Verifies GET /subscriptions returns empty array when no data exists
+
+### Data Validation Tests
+- **test_create_subscription_validation()**: Comprehensive validation testing including:
+  - Missing required fields (amount, billing_cycle, dates)
+  - Invalid data types (non-numeric amounts)
+  - Invalid date formats
+  - Invalid billing cycle values
+  - Ensures all validation errors return 400 status codes
+
+### Filtering Capabilities
+- **test_list_subscriptions_by_category()**: Tests GET /subscriptions?category=<value> filtering
+- **test_list_subscriptions_by_billing_cycle()**: Tests GET /subscriptions?billing_cycle=<value> filtering
+
+### Business Logic Tests
+- **test_calculate_monthly_expense()**: Tests GET /subscriptions/monthly-expense endpoint
+  - Validates calculation of monthly costs across different billing cycles
+  - Tests conversion of yearly subscriptions to monthly equivalents
+  - Verifies accurate financial calculations using assertAlmostEqual
+
+## Data Model Tested
+Tests validate the subscription schema with fields:
+- `name` (TEXT NOT NULL): Service name
+- `amount` (REAL NOT NULL): Subscription cost
+- `category` (TEXT NOT NULL): Service category
+- `billing_cycle` (TEXT NOT NULL): Billing frequency
+- `start_date` (TEXT NOT NULL): Service start date
+- `renewal_date` (TEXT NOT NULL): Next renewal date
+
+## Role
+Ensures robust testing coverage for subscription management features including data validation, CRUD operations, filtering capabilities, and financial calculations. Provides confidence in the subscription tracking functionality of the expense management system.
+
+# Receipt Management Tests (test_receipts.py)
+
+The test_receipts.py file contains comprehensive unit tests for the receipt upload and management functionality of the Flask backend application.
+
+## Test Architecture
+- **Framework**: Python unittest with Flask test client
+- **Database**: Uses temporary SQLite database with both `expenses` and `receipts` tables
+- **File System**: Creates temporary upload directories for testing file operations
+- **Isolation**: Each test uses fresh database and file system with proper cleanup
+- **Coverage**: Tests all receipt CRUD operations, file validation, and file system integration
+
+## Test Environment Setup
+- Creates temporary test directory using `tempfile.mkdtemp()`
+- Sets up isolated upload folder for file storage tests
+- Creates both `expenses` and `receipts` tables with proper foreign key relationships
+- Adds test expense data for linking receipt tests
+- Configures Flask app for testing mode with custom upload folder
+
+## Test Categories
+
+### Basic Receipt Operations
+- **test_get_receipts_empty()**: Validates GET /receipts returns empty array when no receipts exist
+- **test_upload_receipt_valid()**: Tests successful PNG receipt upload with:
+  - Valid PNG file signature validation
+  - Metadata storage (description, expense_id)
+  - File system persistence verification
+  - Database record creation
+  - Returns 201 status with receipt details
+
+### File Validation Tests
+- **test_upload_receipt_invalid_file()**: Tests file type validation by:
+  - Uploading non-PNG file content
+  - Verifying 400 error response
+  - Ensuring invalid files are rejected
+- **test_invalid_upload_no_file()**: Tests missing file handling:
+  - POST request without file attachment
+  - Returns 400 error for incomplete uploads
+
+### Receipt Deletion Tests
+- **test_delete_receipt()**: Comprehensive deletion testing:
+  - Uploads valid receipt first
+  - Verifies file exists in upload directory
+  - Deletes receipt via DELETE /receipts/<id>
+  - Confirms file removed from file system
+  - Verifies database record removal
+  - Returns 200 status on success
+- **test_delete_nonexistent_receipt()**: Tests 404 handling for non-existent receipt IDs
+
+## File Handling Features Tested
+- **PNG Validation**: Uses actual PNG binary data for realistic file testing
+- **File Persistence**: Verifies uploaded files are saved to configured upload directory
+- **File Cleanup**: Ensures deleted receipts remove both database records and physical files
+- **Unique Filename Generation**: Tests that uploaded files get unique server-generated filenames
+
+## Data Model Tested
+Tests validate the receipts schema integration:
+- `id` (INTEGER PRIMARY KEY): Auto-incrementing unique identifier
+- `filename` (TEXT NOT NULL): Server-generated unique filename
+- `original_filename` (TEXT NOT NULL): User's original filename
+- `expense_id` (INTEGER): Optional foreign key to expenses table
+- `description` (TEXT): Optional receipt description
+- `upload_date` (TEXT NOT NULL): Upload timestamp
+
+## Security Features Tested
+- File type validation to prevent non-image uploads
+- Proper file system isolation using temporary directories
+- Database foreign key relationships with expenses
+
+## Role
+Ensures reliable testing coverage for receipt management including file upload validation, file system operations, database integration, and proper cleanup. Provides confidence in the receipt storage and retrieval functionality of the expense tracking system.
+
+# Budget Management Tests (test_budgets.py)
+
+The test_budgets.py file contains comprehensive unit tests for the budget tracking and management functionality of the Flask backend application.
+
+## Test Architecture
+- **Framework**: Python unittest with Flask test client
+- **Database**: Uses temporary SQLite database with both `expenses` and `budgets` tables
+- **Isolation**: Each test creates a fresh database schema ensuring complete test independence
+- **Coverage**: Tests all budget CRUD operations, validation rules, and budget progress calculations
+
+## Test Database Setup
+- Creates temporary database files using `tempfile.mkstemp()`
+- Automatically creates both `expenses` and `budgets` tables with proper schema
+- Populates test data with realistic expense and budget records for progress calculations
+- Uses time-based test data (30 days ago to today) for accurate progress testing
+- Properly cleans up all temporary resources after each test
+
+## Test Categories
+
+### Basic CRUD Operations
+- **test_get_budgets()**: Validates GET /budgets retrieves all budgets with correct data structure
+- **test_create_budget()**: Tests POST /budgets creates new budgets with:
+  - Required fields validation (category, amount, period, start_date)
+  - Automatic timestamp generation (created_at, updated_at)
+  - Returns 201 status with budget details
+  - Database persistence verification
+- **test_get_budget_by_id()**: Tests GET /budgets/<id> individual budget retrieval and 404 handling
+- **test_update_budget()**: Validates PUT /budgets/<id> updates with:
+  - Partial update support (only changed fields)
+  - Automatic updated_at timestamp refresh
+  - Non-existent ID 404 handling
+- **test_delete_budget()**: Tests DELETE /budgets/<id> removal and 404 responses
+
+### Data Validation Tests
+- **test_create_budget_validation()**: Comprehensive validation testing including:
+  - Missing required fields (amount, period, start_date)
+  - Invalid data types (non-numeric amounts)
+  - Invalid period values (only monthly, quarterly, annual allowed)
+  - Duplicate category/period combination prevention (409 Conflict)
+  - Ensures all validation errors return appropriate HTTP status codes
+
+### Budget Progress Calculations
+- **test_budget_progress()**: Complex budget tracking functionality testing:
+  - **Individual Budget Progress**: GET /budgets/progress/<id> calculates:
+    - Total spending against budget amount within time period
+    - Percentage used calculation
+    - Budget status determination (under/over budget)
+    - Accurate actual spending aggregation from expenses table
+  - **All Budgets Progress**: GET /budgets/progress returns progress for all active budgets
+  - **Category-based Progress**: GET /budgets/progress/category/<category> filters by specific category
+  - **Non-existent Category Handling**: Returns 404 for invalid categories
+
+## Business Logic Features Tested
+
+### Time-based Budget Analysis
+- Tests budget progress calculation using date ranges based on budget periods
+- Validates expense aggregation within budget timeframes
+- Ensures accurate percentage calculations for budget utilization
+- Tests integration between expenses and budgets tables for progress reporting
+
+### Data Integrity
+- Foreign key relationship testing between expenses and budget categories
+- Duplicate prevention for category/period combinations
+- Proper handling of edge cases (empty budgets, no matching expenses)
+
+## Data Model Tested
+Tests validate the budgets schema with fields:
+- `id` (INTEGER PRIMARY KEY): Auto-incrementing unique identifier
+- `category` (TEXT NOT NULL): Budget category matching expense categories
+- `amount` (REAL NOT NULL): Budget limit amount
+- `period` (TEXT NOT NULL): Budget period (monthly, quarterly, annual)
+- `start_date` (TEXT NOT NULL): Budget period start date
+- `created_at` (TEXT NOT NULL): Record creation timestamp
+- `updated_at` (TEXT NOT NULL): Last modification timestamp
+
+## Test Data Structure
+Uses realistic test data including:
+- Food category expenses: $100 (groceries) + $50 (restaurant) = $150 total
+- Food budget: $200 monthly budget
+- Expected progress: 75% utilization ($150/$200)
+- Transport expenses: $200 (without corresponding budget for edge case testing)
+
+## Role
+Ensures robust testing coverage for budget management features including data validation, CRUD operations, progress calculations, and financial analysis. Provides confidence in the budget tracking and spending analysis functionality of the expense management system with comprehensive time-based calculations.
+
+# Main Application Tests (test_app.py)
+
+The test_app.py file contains unit tests for the core expense management functionality of the Flask backend application.
+
+## Test Architecture
+- **Framework**: Python unittest with Flask test client
+- **Database**: Uses temporary SQLite database with isolated test environment
+- **Isolation**: Each test creates a fresh database schema with setUp/tearDown methods
+- **Coverage**: Tests primary expense management API endpoints and validation
+
+## Test Database Setup
+- Creates temporary database files using `tempfile.mkstemp()`
+- Automatically creates `expenses` table with complete schema
+- Populates test data with two sample expenses for testing operations
+- Properly cleans up all temporary resources after each test
+
+## Test Categories
+
+### Basic Expense Operations
+- **test_get_expenses()**: Validates GET /expenses endpoint:
+  - Retrieves all expenses from database
+  - Verifies correct number of records returned
+  - Confirms expenses are ordered by date (most recent first)
+  - Returns 200 status code
+- **test_add_expense()**: Tests POST /expenses creates new expenses:
+  - Accepts JSON payload with amount, category, description
+  - Returns 201 status on successful creation
+  - Verifies expense data persistence in database
+  - Confirms total expense count increases after addition
+
+### Data Validation Tests
+- **test_add_expense_missing_fields()**: Tests validation for incomplete expense data:
+  - Sends request with missing required fields (amount, category)
+  - Verifies 400 status code returned for invalid requests
+  - Ensures proper error handling for malformed data
+
+### Expense Management
+- **test_delete_expense()**: Tests DELETE /expenses/<id> functionality:
+  - Successfully removes expense by ID
+  - Returns 200 status on successful deletion
+  - Verifies expense count decreases after removal
+  - Confirms record no longer exists in database
+
+### Category Management
+- **test_get_categories()**: Tests GET /categories endpoint:
+  - Retrieves unique expense categories from database
+  - Returns array of distinct category names
+  - Verifies correct categories are present in response
+  - Returns 200 status code
+
+## Data Model Tested
+Tests validate the expenses schema with fields:
+- `id` (INTEGER PRIMARY KEY): Auto-incrementing unique identifier
+- `amount` (REAL NOT NULL): Expense amount
+- `category` (TEXT NOT NULL): Expense category
+- `description` (TEXT): Optional description
+- `date` (TEXT NOT NULL): Expense date
+
+## Test Data Structure
+Uses realistic test data including:
+- Food expense: $100.00 for "Lunch" on 2023-01-01
+- Transport expense: $200.00 for "Uber" on 2023-01-02
+- Entertainment test expense: $50.00 for "Movie tickets"
+
+## Role
+Provides foundational testing coverage for the core expense tracking functionality including CRUD operations, data validation, and category management. Ensures the primary expense management features work reliably and handle edge cases appropriately.
+
+# Main Flask Application (app.py) - Core Role
+
+The app.py file serves as the central REST API server for a comprehensive expense tracking and budgeting application. It provides the complete backend infrastructure for managing personal finances through multiple interconnected modules.
+
+## Primary Role
+Acts as the main Flask web server that handles all HTTP requests for expense management, receipt storage, subscription tracking, and budget monitoring functionality.
+
+## Key Architectural Components
+
+### Database Management Layer
+- **SQLite Integration**: Uses SQLite database with automatic schema creation and migration support
+- **Connection Management**: Provides centralized database connection handling with row factory for dict-like results
+- **Schema Evolution**: Automatically creates missing tables on startup for backward compatibility
+
+### REST API Endpoints
+The application exposes 25+ REST endpoints organized into four main functional areas:
+1. **Expense Management** (5 endpoints): CRUD operations for tracking individual expenses
+2. **Receipt Management** (4 endpoints): File upload, storage, and retrieval for expense documentation
+3. **Subscription Management** (6 endpoints): Tracking recurring services with billing cycle calculations
+4. **Budget Management** (8 endpoints): Budget creation, tracking, and progress analysis with time-based calculations
+
+### Security and Validation Features
+- **File Upload Security**: PNG-only uploads with binary signature validation to prevent malicious files
+- **Path Traversal Protection**: Filename validation to prevent directory traversal attacks
+- **Input Sanitization**: Comprehensive validation for all API inputs including amounts, dates, and categories
+- **CORS Configuration**: Properly configured Cross-Origin Resource Sharing for frontend integration
+
+### Business Logic Engine
+- **Budget Progress Calculations**: Complex time-based budget analysis with percentage tracking and status determination
+- **Subscription Cost Analysis**: Automated monthly expense calculations across different billing cycles
+- **Category Management**: Dynamic category extraction from expense data
+- **Date-based Filtering**: Time-range calculations for budget periods and expense aggregation
+
+## Integration Points
+- **Frontend Communication**: Serves React frontend running on localhost:3000 via CORS-enabled API
+- **File System**: Manages upload directory for receipt storage with unique filename generation
+- **Database Persistence**: Maintains all application data in local SQLite database with proper relationships
+
+## Configuration and Deployment
+- **Development Mode**: Runs on port 5001 with debug mode enabled for development
+- **File Limits**: Configures 10MB maximum file upload size for receipt management
+- **Error Handling**: Comprehensive error responses with appropriate HTTP status codes and detailed error messages
+
+## Role Summary
+The app.py file is the backbone of the expense tracking system, providing a robust, secure, and feature-complete REST API that enables users to track expenses, manage receipts, monitor subscriptions, and analyze spending against budgets through a comprehensive financial management platform.
